@@ -3,14 +3,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import {
   Accessibility,
   CheckCircle2,
   Phone,
+  PhoneCallIcon,
   Volume2,
   ArrowUpFromDot,
   Waypoints,
   Eye,
+  XIcon,
 } from "lucide-react";
 import { PURPLE_LINE_STATIONS, GREEN_LINE_STATIONS } from "@/lib/metro-data";
 import { useTranslation } from "@/components/language-provider";
@@ -68,6 +71,7 @@ export default function AccessibilityPage() {
   const [accessibilityMode, setAccessibilityMode] = useState(() => {
     return localStorage.getItem(ACCESSIBILITY_KEY) === "true";
   });
+  const [confirmCall, setConfirmCall] = useState<{ label: string; number: string } | null>(null);
 
   useEffect(() => {
     localStorage.setItem(ACCESSIBILITY_KEY, String(accessibilityMode));
@@ -204,7 +208,13 @@ export default function AccessibilityPage() {
                   {emergencyContacts.map((contact, idx) => (
                     <li key={idx} className="flex items-center justify-between gap-2 text-sm" data-testid={`text-contact-${idx}`}>
                       <span className="text-muted-foreground">{contact.label}</span>
-                      <span className="font-mono font-semibold">{contact.number}</span>
+                      <button
+                        onClick={() => setConfirmCall(contact)}
+                        className="font-mono font-semibold flex items-center gap-1.5 text-primary hover:underline cursor-pointer group"
+                      >
+                        <PhoneCallIcon className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100" />
+                        {contact.number}
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -230,6 +240,42 @@ export default function AccessibilityPage() {
           </div>
         </div>
       </div>
+
+      {/* Click-to-call confirmation dialog */}
+      {confirmCall && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="bg-background rounded-2xl shadow-2xl border p-6 max-w-sm w-full space-y-5 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-green-500/10">
+                <PhoneCallIcon className="w-6 h-6 text-green-500" />
+              </div>
+              <button onClick={() => setConfirmCall(null)} className="text-muted-foreground hover:text-foreground">
+                <XIcon className="w-5 h-5" />
+              </button>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">{confirmCall.label}</p>
+              <p className="text-2xl font-bold font-mono tracking-wide mt-0.5">{confirmCall.number}</p>
+              <p className="text-sm text-muted-foreground mt-2">Do you want to call this number?</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Button variant="outline" onClick={() => setConfirmCall(null)} className="w-full">
+                No, Cancel
+              </Button>
+              <Button
+                className="w-full bg-green-500 hover:bg-green-600 text-white"
+                onClick={() => {
+                  window.location.href = `tel:${confirmCall.number.replace(/[-\s]/g, "")}`;
+                  setConfirmCall(null);
+                }}
+              >
+                <PhoneCallIcon className="w-4 h-4 mr-1.5" />
+                Yes, Call
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
