@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -71,9 +71,15 @@ function LanguageSelector() {
 }
 
 function Router() {
+  const { user } = useAuth();
   return (
     <Switch>
-      <Route path="/" component={BookTicket} />
+      {/* Admin/Scanner: redirect root to admin dashboard */}
+      {(user?.role === "admin" || user?.role === "scanner") ? (
+        <Route path="/" component={() => <Redirect to="/admin" />} />
+      ) : (
+        <Route path="/" component={BookTicket} />
+      )}
       <Route path="/tickets" component={MyTickets} />
       <Route path="/wallet" component={Wallet} />
       <Route path="/map" component={MetroMap} />
@@ -92,11 +98,12 @@ function Router() {
 
 function HeaderBar() {
   const { user } = useAuth();
+  const isUserRole = user?.role === "user";
   return (
     <header className="flex items-center justify-between gap-2 px-2 border-b h-12 flex-shrink-0">
       <SidebarTrigger data-testid="button-sidebar-toggle" />
       <div className="flex items-center gap-2">
-        {user && (
+        {user && isUserRole && (
           <Link href="/wallet">
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary/5 border border-primary/10 cursor-pointer" data-testid="header-wallet-link">
               <WalletIcon className="w-3.5 h-3.5 text-primary" />

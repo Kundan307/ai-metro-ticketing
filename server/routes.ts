@@ -410,60 +410,85 @@ export async function registerRoutes(
   app.post("/api/scan", requireScanner, async (req, res) => {
     try {
       const parsed = scanTicketSchema.parse(req.body);
-      // Ensure ticketId is a single string and not an array
       const ticketId = Array.isArray(parsed.ticketId) ? parsed.ticketId[0] : parsed.ticketId;
       const ticket = await storage.getTicket(ticketId);
       if (!ticket) return res.json({ valid: false, fraudDetected: false, message: "Ticket not found" });
 
-      const scanType = parsed.scanType || (ticket.scannedAt ? "exit" : "entry");
+      const pax = ticket.passengers;
+      const entryCount = ticket.entryCount ?? 0;
+      const exitCount = ticket.exitCount ?? 0;
+
+      // Determine scan type: entry if not all passengers have entered yet, else exit
+      const scanType = parsed.scanType || (entryCount < pax ? "entry" : "exit");
       const stationId = parsed.stationId || (scanType === "entry" ? ticket.sourceStationId : ticket.destStationId);
 
-      const scanCount = await storage.getScanCountForTicket(ticketId);
       let fraudDetected = false;
       let fraudReason: string | undefined;
 
-      if (scanCount >= 3) {
+      if (ticket.isFraudulent) {
         fraudDetected = true;
-        fraudReason = "Same QR ticket scanned multiple times";
+        fraudReason = ticket.fraudReason || "Ticket flagged as fraudulent";
       } else if (ticket.status === "used") {
         fraudDetected = true;
-        fraudReason = "Ticket already used";
-      } else if (scanType === "exit" && !ticket.scannedAt) {
+        fraudReason = "All passengers have already exited — ticket fully used";
+      } else if (scanType === "exit" && entryCount === 0) {
         fraudDetected = true;
-        fraudReason = "Exit scan without entry";
-      } else if (ticket.scannedAt && scanType === "exit") {
+        fraudReason = "Exit scan attempted without any entry scan";
+      } else if (scanType === "exit" && exitCount >= entryCount) {
+        fraudDetected = true;
+        fraudReason = "More exit scans than entry scans detected";
+      } else if (scanType === "entry" && entryCount >= pax) {
+        fraudDetected = true;
+        fraudReason = `All ${pax} passenger(s) already entered — no more entry scans allowed`;
+      } else if (scanType === "exit" && ticket.scannedAt) {
         const timeSinceEntry = Date.now() - new Date(ticket.scannedAt).getTime();
         if (timeSinceEntry < 2 * 60 * 1000) {
           fraudDetected = true;
-          fraudReason = "Impossible travel time (< 2 min)";
+          fraudReason = "Impossible travel time (< 2 min since entry)";
         }
       }
 
       if (fraudDetected) {
         await storage.updateTicket(ticketId, { isFraudulent: true, fraudReason });
-      }
-      if (scanType === "entry" && !ticket.scannedAt) {
-        await storage.updateTicket(ticketId, { scannedAt: new Date() });
-      }
-      if (scanType === "exit" && !fraudDetected) {
-        await storage.updateTicket(ticketId, { status: "used" });
+      } else if (scanType === "entry") {
+        const newEntryCount = entryCount + 1;
+        await storage.updateTicket(ticketId, {
+          entryCount: newEntryCount,
+          scannedAt: entryCount === 0 ? new Date() : ticket.scannedAt, // record time of first entry
+        });
+      } else if (scanType === "exit") {
+        const newExitCount = exitCount + 1;
+        const allDone = newExitCount >= pax;
+        await storage.updateTicket(ticketId, {
+          exitCount: newExitCount,
+          status: allDone ? "used" : "active",
+        });
       }
 
       await storage.createScanLog({
-        ticketId: ticketId,
-        stationId: stationId,
-        scanType: scanType,
+        ticketId,
+        stationId,
+        scanType,
         result: fraudDetected ? "fraud" : "valid",
         fraudDetected,
         fraudReason: fraudReason || null,
       });
 
       const updatedTicket = await storage.getTicket(ticketId);
+      const newEntry = (updatedTicket?.entryCount ?? 0);
+      const newExit = (updatedTicket?.exitCount ?? 0);
+
+      const successMsg = scanType === "entry"
+        ? `Passenger ${newEntry} of ${pax} entered ✓ — ${pax - newEntry} remaining`
+        : `Passenger ${newExit} of ${pax} exited ✓ — ${pax - newExit} remaining`;
+
       res.json({
         valid: !fraudDetected,
         fraudDetected,
         fraudReason,
-        message: fraudDetected ? `FRAUD: ${fraudReason} (Station: ${updatedTicket?.destName})` : `Ticket validated - ${scanType} scan successful for Station: ${scanType === "entry" ? updatedTicket?.sourceName : updatedTicket?.destName}`,
+        message: fraudDetected
+          ? `⛔ BLOCKED: ${fraudReason}`
+          : successMsg,
         ticket: updatedTicket ? {
           id: updatedTicket.id,
           sourceName: updatedTicket.sourceName,
@@ -471,11 +496,19 @@ export async function registerRoutes(
           totalFare: updatedTicket.totalFare,
           passengers: updatedTicket.passengers,
           status: updatedTicket.status,
+          entryCount: updatedTicket.entryCount,
+          exitCount: updatedTicket.exitCount,
         } : null,
       });
     } catch (error: any) {
       res.status(400).json({ message: error.message || "Scan failed" });
     }
+  });
+
+
+  app.get("/api/admin/stats", requireAdmin, async (_req, res) => {
+    const stats = await storage.getLivePassengerStats();
+    res.json(stats);
   });
 
   app.get("/api/scans/recent", requireAdmin, async (_req, res) => {

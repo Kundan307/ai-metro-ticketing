@@ -47,6 +47,7 @@ export interface IStorage {
   getRecentTickets(limit: number): Promise<Ticket[]>;
   getUserTickets(userId: number): Promise<Ticket[]>;
   getTicketStats(): Promise<{ totalTickets: number; totalRevenue: number; fraudCount: number; avgFare: number }>;
+  getLivePassengerStats(): Promise<{ totalBooked: number; currentlyInSystem: number; totalCompleted: number }>;
 
   createScanLog(log: InsertScanLog): Promise<ScanLog>;
   getRecentScans(limit: number): Promise<ScanLog[]>;
@@ -177,6 +178,28 @@ export class DatabaseStorage implements IStorage {
     const fraudCount = allTickets.filter((t) => t.isFraudulent).length;
     const avgFare = totalTickets > 0 ? totalRevenue / totalTickets : 0;
     return { totalTickets, totalRevenue, fraudCount, avgFare };
+  }
+
+  async getLivePassengerStats() {
+    const allTickets = await db.select().from(tickets);
+    
+    let totalBooked = 0;
+    let totalEntered = 0;
+    let totalExited = 0;
+
+    for (const t of allTickets) {
+      if (!t.isFraudulent) {
+        totalBooked += t.passengers;
+        totalEntered += (t.entryCount || 0);
+        totalExited += (t.exitCount || 0);
+      }
+    }
+
+    return {
+      totalBooked,
+      currentlyInSystem: totalEntered - totalExited,
+      totalCompleted: totalExited
+    };
   }
 
   async createScanLog(log: InsertScanLog): Promise<ScanLog> {

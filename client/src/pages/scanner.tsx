@@ -26,6 +26,8 @@ type ScanResult = {
     totalFare: number;
     passengers: number;
     status: string;
+    entryCount?: number;
+    exitCount?: number;
   };
 };
 
@@ -126,12 +128,15 @@ export default function ScannerPage() {
       }
 
       // Prefer back/environment camera
-      const cam = cameras.find(c => /back|rear|environment/i.test(c.label)) ?? cameras[cameras.length - 1];
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const backCamera = cameras.find(c => /back|rear|environment/i.test(c.label)) ?? cameras[cameras.length - 1];
 
       await scannerRef.current.start(
-        cam.id,
+        backCamera.id,
         {
-          fps: 60,           // Maximum decode frequency
+          fps: 30,           // 30fps is more stable across devices
+          aspectRatio: 1.0,
           // No qrbox — decodes from full camera frame, fastest possible
           disableFlip: false,
         },
@@ -176,6 +181,12 @@ export default function ScannerPage() {
 
   const isValid = lastResult?.valid && !lastResult?.fraudDetected;
   const isFraud = lastResult?.fraudDetected;
+
+  // Calculate remaining
+  const passengers = lastResult?.ticket?.passengers ?? 1;
+  const entries = lastResult?.ticket?.entryCount ?? 0;
+  const exits = lastResult?.ticket?.exitCount ?? 0;
+  const remaining = entries < passengers ? (passengers - entries) : (passengers - exits);
 
   return (
     <div className="container max-w-lg mx-auto py-8 px-4 space-y-6 pb-16">
@@ -244,7 +255,7 @@ export default function ScannerPage() {
 
       {/* Result */}
       {lastResult && (
-        <Card className={`border-2 transition-all ${
+        <Card className={`border-2 transition-all shadow-lg ${
           isFraud ? "border-red-500 bg-red-500/5" :
           isValid ? "border-green-500 bg-green-500/5" :
           "border-orange-400 bg-orange-400/5"
@@ -257,15 +268,18 @@ export default function ScannerPage() {
                 ? <CheckCircleIcon className="w-7 h-7 text-green-500" />
                 : <XCircleIcon className="w-7 h-7 text-orange-400" />}
               {isFraud ? "⚠️ Fraud Alert" : isValid ? "✅ Ticket Valid" : "❌ Invalid Ticket"}
-              <Badge
-                variant={isFraud ? "destructive" : isValid ? "default" : "secondary"}
-                className="ml-auto text-xs"
-              >
-                {isFraud ? "BLOCKED" : isValid ? "ALLOWED" : "DENIED"}
-              </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Countdown Badge */}
+            {isValid && (
+              <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 text-center animate-in zoom-in-95 duration-300">
+                <p className="text-primary font-bold text-4xl leading-tight">{remaining}</p>
+                <p className="text-[10px] text-primary/70 uppercase tracking-[0.2em] font-black">
+                  {remaining === 1 ? 'Passenger' : 'Passengers'} Remaining
+                </p>
+              </div>
+            )}
             {/* Status message */}
             <div className={`flex items-start gap-2 p-3 rounded-md text-sm font-medium ${
               isFraud ? "bg-red-500/10 text-red-700" :
@@ -294,11 +308,54 @@ export default function ScannerPage() {
                     {lastResult.ticket.sourceName} → {lastResult.ticket.destName}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 px-4 py-3">
-                  <UsersIcon className="w-4 h-4 text-primary shrink-0" />
-                  <span className="text-muted-foreground">Passengers</span>
-                  <span className="ml-auto font-semibold">{lastResult.ticket.passengers}</span>
+
+                {/* Passenger progress tracker */}
+                <div className="px-4 py-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <UsersIcon className="w-4 h-4 text-primary shrink-0" />
+                    <span className="text-muted-foreground">Passengers</span>
+                    <span className="ml-auto font-semibold">{lastResult.ticket.passengers} total</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <div>
+                      <p className="text-[10px] text-muted-foreground font-medium mb-1 uppercase tracking-wide">Entry</p>
+                      <div className="flex flex-wrap gap-1">
+                        {Array.from({ length: lastResult.ticket.passengers }).map((_, i) => (
+                          <div
+                            key={i}
+                            title={i < (lastResult.ticket?.entryCount ?? 0) ? `Passenger ${i + 1} entered` : "Pending"}
+                            className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 ${
+                              i < (lastResult.ticket?.entryCount ?? 0)
+                                ? "bg-green-500 border-green-500 text-white"
+                                : "bg-background border-muted-foreground/30 text-muted-foreground"
+                            }`}
+                          >
+                            {i + 1}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground font-medium mb-1 uppercase tracking-wide">Exit</p>
+                      <div className="flex flex-wrap gap-1">
+                        {Array.from({ length: lastResult.ticket.passengers }).map((_, i) => (
+                          <div
+                            key={i}
+                            title={i < (lastResult.ticket?.exitCount ?? 0) ? `Passenger ${i + 1} exited` : "Pending"}
+                            className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 ${
+                              i < (lastResult.ticket?.exitCount ?? 0)
+                                ? "bg-blue-500 border-blue-500 text-white"
+                                : "bg-background border-muted-foreground/30 text-muted-foreground"
+                            }`}
+                          >
+                            {i + 1}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
+
                 <div className="flex items-center gap-2 px-4 py-3">
                   <IndianRupeeIcon className="w-4 h-4 text-primary shrink-0" />
                   <span className="text-muted-foreground">Fare Paid</span>

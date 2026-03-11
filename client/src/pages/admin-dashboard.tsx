@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { type ScanLog } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ShieldCheckIcon, AlertTriangleIcon, UserCheckIcon, ClockIcon } from "lucide-react";
+import { ShieldCheckIcon, AlertTriangleIcon, UserCheckIcon, ClockIcon, CheckCircleIcon } from "lucide-react";
 import { format } from "date-fns";
 
 export default function AdminDashboard() {
@@ -23,6 +23,12 @@ export default function AdminDashboard() {
     refetchInterval: 5000,
   });
 
+  const { data: adminStats } = useQuery<{ totalBooked: number; currentlyInSystem: number; totalCompleted: number }>({
+    queryKey: ["/api/admin/stats"],
+    enabled: user?.role === "admin",
+    refetchInterval: 5000,
+  });
+
   const { data: usersData } = useQuery<any[]>({
     queryKey: ["/api/admin/users"],
     enabled: user?.role === "admin",
@@ -33,7 +39,6 @@ export default function AdminDashboard() {
   }
 
   const fraudScans = recentScans?.filter(scan => scan.fraudDetected) || [];
-  const validScans = recentScans?.filter(scan => !scan.fraudDetected) || [];
 
   return (
     <div className="container mx-auto py-8 px-4 space-y-6">
@@ -43,39 +48,49 @@ export default function AdminDashboard() {
           Admin Dashboard
         </h1>
         <p className="text-muted-foreground">
-          Monitor metro operations and ticket scanning activity.
+          Monitor metro operations and live passenger flow.
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card className="bg-primary/5 border-primary/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Recent Scans</CardTitle>
-            <ClockIcon className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Total Bookings</CardTitle>
+            <ClockIcon className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{recentScans?.length || 0}</div>
-            <p className="text-xs text-muted-foreground">Last 20 scans recorded</p>
+            <div className="text-2xl font-bold text-primary">{adminStats?.totalBooked || 0}</div>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Total Passengers Booked</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-green-500/5 border-green-500/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Valid Scans</CardTitle>
+            <CardTitle className="text-sm font-medium text-green-600">Active in Metro</CardTitle>
             <UserCheckIcon className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{validScans.length}</div>
-            <p className="text-xs text-muted-foreground">Successful verifications</p>
+            <div className="text-2xl font-bold text-green-600">{adminStats?.currentlyInSystem || 0}</div>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Passengers inside stations</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-blue-500/5 border-blue-500/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-blue-600">Trips Completed</CardTitle>
+            <CheckCircleIcon className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{adminStats?.totalCompleted || 0}</div>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Trips fully completed</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-destructive/5 border-destructive/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-destructive">Fraud Alerts</CardTitle>
             <AlertTriangleIcon className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-destructive">{fraudScans.length}</div>
-            <p className="text-xs text-muted-foreground">Suspicious activities flagged</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Suspicious activities</p>
           </CardContent>
         </Card>
       </div>

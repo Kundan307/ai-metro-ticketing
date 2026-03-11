@@ -59,6 +59,8 @@ export const tickets = pgTable("tickets", {
   transferFromPlatform: integer("transfer_from_platform"),
   transferToPlatform: integer("transfer_to_platform"),
   scannedAt: timestamp("scanned_at"),
+  entryCount: integer("entry_count").notNull().default(0),
+  exitCount: integer("exit_count").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

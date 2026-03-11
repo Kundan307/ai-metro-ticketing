@@ -82,7 +82,7 @@ export function AppSidebar() {
         </Link>
       </SidebarHeader>
       <SidebarContent>
-        {user && (
+        {user && user.role === "user" && (
           <div className="px-3 py-2">
             <Link href="/wallet">
               <div className="p-3 rounded-lg bg-primary/5 border border-primary/10 transition-colors" data-testid="card-sidebar-profile">
