@@ -130,7 +130,11 @@ export default function ScannerPage() {
 
       await scannerRef.current.start(
         cam.id,
-        { fps: 30, qrbox: { width: 200, height: 200 }, aspectRatio: 1.0 },
+        {
+          fps: 60,           // Maximum decode frequency
+          // No qrbox — decodes from full camera frame, fastest possible
+          disableFlip: false,
+        },
         (decodedText) => {
           stopScanner();
           try {
@@ -174,7 +178,7 @@ export default function ScannerPage() {
   const isFraud = lastResult?.fraudDetected;
 
   return (
-    <div className="container max-w-lg mx-auto py-8 px-4 space-y-6">
+    <div className="container max-w-lg mx-auto py-8 px-4 space-y-6 pb-16">
       <div>
         <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
           <ScanLineIcon className="w-8 h-8 text-primary" />
