@@ -1,0 +1,311 @@
+You are an expert full-stack developer, AI engineer, and smart transportation system architect.
+
+Build a complete advanced project called:
+
+SMARTAI METRO TICKETING SYSTEM
+
+The system should simulate an AI-powered intelligent metro ticketing platform for Bangalore Metro (BMRCL). The goal is to improve passenger experience, optimize metro operations, and provide a smart digital ticketing system.
+
+The project must include frontend, backend, database, machine learning models, metro station mapping, dashboards, and customer-focused features.
+
+MAIN AI OBJECTIVES
+
+1. Passenger Demand Prediction
+   Build a machine learning model that predicts passenger demand at each station based on:
+
+* time of day
+* day of week
+* weather
+* nearby events
+
+Output congestion levels:
+Low
+Medium
+High
+
+2. Fraud / Anomaly Detection
+   Detect suspicious ticket usage such as:
+
+* Same ticket scanned multiple times
+* Impossible travel time between stations
+* Unusual travel patterns
+
+Use anomaly detection models such as Isolation Forest.
+
+3. Dynamic AI Ticket Pricing
+   Adjust ticket prices based on congestion and peak demand.
+
+Example:
+Low demand → normal fare
+Medium demand → +10%
+High demand → +20%
+
+CORE SYSTEM FEATURES
+
+1. Ticket Booking Interface
+   Passenger selects:
+
+* Source station
+* Destination station
+* Travel time
+
+The system calculates distance-based fare and applies dynamic AI pricing.
+
+2. QR Code Ticket Generation
+   Generate a QR code containing:
+
+TicketID
+Source
+Destination
+Fare
+Timestamp
+Security hash
+
+Display QR code after payment.
+
+3. Metro Gate Scanner Simulation
+   Create a scanner page that:
+
+* scans QR code
+* validates ticket
+* logs entry
+* runs fraud detection model
+
+4. UPI Payment Simulation
+   Allow payment options:
+
+* UPI
+* QR Pay
+* Wallet
+
+User enters UPI ID (example: user@upi) and confirms payment before ticket generation.
+
+CUSTOMER EXPERIENCE FEATURES
+
+1. Smart Route Planner
+   Allow passengers to enter source and destination.
+
+System suggests:
+
+* fastest route
+* least crowded route
+* minimum transfers
+
+Display estimated travel time.
+
+2. Live Train Tracking
+   Display trains moving on the metro map.
+
+Show:
+
+* next arriving train
+* train location
+* delay alerts
+
+3. Real-Time Crowd Alert System
+   Display current crowd levels at each station:
+   Low
+   Medium
+   High
+
+Update every 10 seconds.
+
+Provide suggestions for less crowded stations.
+
+4. Passenger Recommendation System
+   Suggest best travel time to avoid congestion.
+
+Example output:
+Recommended time: 11:30 AM
+Expected crowd: Low
+
+5. AI Travel Assistant Chatbot
+   Add a chatbot where passengers can ask questions.
+
+Example:
+"When is the next train to Whitefield?"
+
+The chatbot should respond with train timings and route information.
+
+6. Metro Wallet System
+   Passengers can store:
+
+* wallet balance
+* active tickets
+* travel passes
+
+Display travel history.
+
+7. Multi-Language Support
+   Support multiple languages such as:
+
+* English
+* Kannada
+* Hindi
+
+Allow switching language in the UI.
+
+8. Accessibility Mode
+   Provide features for disabled passengers:
+
+* elevator locations
+* wheelchair-friendly routes
+* audio assistance
+
+METRO MAP SYSTEM
+
+Use Leaflet.js to display a real-time Bangalore Metro map.
+
+Include these metro lines:
+
+Purple Line
+Baiyappanahalli → Kengeri
+
+Green Line
+Nagasandra → Silk Institute
+
+Future Lines:
+Yellow Line
+Pink Line
+Blue Line (Airport Line)
+
+Each station marker must display:
+
+Station name
+Crowd level
+Predicted demand
+Next train arrival
+
+COMPUTER VISION FEATURE
+
+Implement CCTV crowd detection using OpenCV.
+
+Detect number of people in station camera feed.
+
+Output:
+People count
+Crowd density level
+
+Send data to dashboard.
+
+AI OPERATIONS DASHBOARD
+
+Create a dashboard showing:
+
+Passenger demand predictions
+Crowd density heatmap
+Ticket sales analytics
+Fraud alerts
+Train schedules
+
+Use Streamlit or Chart.js.
+
+UI FEATURES
+
+Create a modern interface with:
+
+Dark mode and light mode toggle
+Responsive mobile design
+Mobile ticket booking interface
+QR ticket display for phone scanning
+
+TECH STACK
+
+Backend:
+Python
+Flask or FastAPI
+
+Frontend:
+HTML
+CSS
+JavaScript
+Leaflet.js
+
+AI / ML:
+Python
+Scikit-learn
+Pandas
+NumPy
+
+Computer Vision:
+OpenCV
+
+QR Code Generation:
+Python qrcode library
+
+Database:
+SQLite
+
+Dashboard:
+Streamlit or Chart.js
+
+DATASET
+
+Generate synthetic metro data with columns:
+
+station
+hour
+day
+weather
+event
+passengers
+ticket_id
+scan_time
+crowd_level
+
+PROJECT STRUCTURE
+
+metro-ai-ticketing
+
+backend
+app.py
+database.py
+demand_model.py
+fraud_model.py
+dynamic_pricing.py
+recommendation_system.py
+crowd_simulator.py
+cv_crowd_detection.py
+
+frontend
+index.html
+style.css
+script.js
+map.js
+scanner.js
+theme.js
+
+mobile
+mobile_ui.html
+mobile_style.css
+
+dashboard
+dashboard.py
+
+data
+metro_data.csv
+ticket_logs.csv
+
+tickets
+generated_qr_codes
+
+map_data
+stations.json
+metro_lines.json
+
+REQUIREMENTS.TXT
+
+flask
+pandas
+numpy
+scikit-learn
+opencv-python
+qrcode
+pillow
+streamlit
+
+Include comments in all code files.
+
+Provide instructions to run the project locally.
+
+The final system should simulate a complete AI-powered smart metro ticketing platform suitable for an engineering competition or hackathon.
