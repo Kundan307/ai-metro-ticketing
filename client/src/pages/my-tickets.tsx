@@ -7,6 +7,12 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   TicketIcon,
   UsersIcon,
   CircleDotIcon,
@@ -14,6 +20,12 @@ import {
   XCircleIcon,
   Loader2Icon,
   ArrowUpDownIcon,
+  QrCodeIcon,
+  CopyIcon,
+  CheckIcon,
+  IndianRupeeIcon,
+  CalendarIcon,
+  TrainFrontIcon,
 } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
@@ -26,6 +38,7 @@ export default function MyTickets() {
   const { refetchUser } = useAuth();
   const queryClient = useQueryClient();
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
 
   const { data: tickets, isLoading } = useQuery<Ticket[]>({
     queryKey: ["/api/tickets/my"],
@@ -105,6 +118,7 @@ export default function MyTickets() {
                       ticket={ticket}
                       onCancel={(id) => cancelMutation.mutate(id)}
                       isCancelling={cancellingId === ticket.id}
+                      onSelect={(id) => setSelectedTicketId(id)}
                     />
                   ))}
                 </div>
@@ -116,7 +130,7 @@ export default function MyTickets() {
                 <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("mytickets.pastTickets")}</h2>
                 <div className="space-y-3">
                   {pastTickets.map((ticket) => (
-                    <TicketCard key={ticket.id} ticket={ticket} />
+                    <TicketCard key={ticket.id} ticket={ticket} onSelect={(id) => setSelectedTicketId(id)} />
                   ))}
                 </div>
               </div>
@@ -124,6 +138,12 @@ export default function MyTickets() {
           </>
         )}
       </div>
+
+      {/* Ticket Detail Dialog */}
+      <TicketDetailDialog
+        ticketId={selectedTicketId}
+        onClose={() => setSelectedTicketId(null)}
+      />
     </div>
   );
 }
@@ -132,10 +152,12 @@ function TicketCard({
   ticket,
   onCancel,
   isCancelling,
+  onSelect,
 }: {
   ticket: Ticket;
   onCancel?: (id: string) => void;
   isCancelling?: boolean;
+  onSelect?: (id: string) => void;
 }) {
   const { t } = useTranslation();
   const statusColor = ticket.status === "active"
@@ -145,7 +167,11 @@ function TicketCard({
       : "bg-muted-foreground/30";
 
   return (
-    <Card data-testid={`card-ticket-${ticket.id}`} className="overflow-hidden">
+    <Card
+      data-testid={`card-ticket-${ticket.id}`}
+      className="overflow-hidden cursor-pointer hover:border-primary/40 transition-colors"
+      onClick={() => onSelect?.(ticket.id)}
+    >
       <CardContent className="p-0">
         <div className="flex items-stretch">
           <div className={`w-1 flex-shrink-0 ${statusColor}`} />
@@ -246,5 +272,190 @@ function TicketCard({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function TicketDetailDialog({
+  ticketId,
+  onClose,
+}: {
+  ticketId: string | null;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const [copied, setCopied] = useState(false);
+
+  const { data, isLoading } = useQuery<{ ticket: Ticket; qrDataUrl: string | null }>({
+    queryKey: ["/api/tickets", ticketId, "detail"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/tickets/${ticketId}/detail`);
+      return res.json();
+    },
+    enabled: !!ticketId,
+  });
+
+  const ticket = data?.ticket;
+  const qrDataUrl = data?.qrDataUrl;
+
+  const handleCopyId = () => {
+    if (ticket) {
+      navigator.clipboard.writeText(ticket.id);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const statusColor = ticket?.status === "active"
+    ? "bg-green-500"
+    : ticket?.status === "cancelled"
+      ? "bg-destructive"
+      : "bg-muted-foreground";
+
+  return (
+    <Dialog open={!!ticketId} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="max-w-md p-0 overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-primary/10 to-primary/5 px-6 pt-6 pb-4">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <TicketIcon className="w-5 h-5 text-primary" />
+              Ticket Details
+            </DialogTitle>
+          </DialogHeader>
+        </div>
+
+        {isLoading || !ticket ? (
+          <div className="px-6 pb-6 space-y-4">
+            <Skeleton className="h-48 w-48 mx-auto rounded-lg" />
+            <Skeleton className="h-4 w-3/4 mx-auto" />
+            <Skeleton className="h-4 w-1/2 mx-auto" />
+          </div>
+        ) : (
+          <div className="px-6 pb-6 space-y-5">
+            {/* QR Code */}
+            {qrDataUrl && (
+              <div className="flex flex-col items-center gap-2">
+                <div className="p-3 bg-white rounded-xl border shadow-sm">
+                  <img
+                    src={qrDataUrl}
+                    alt="Ticket QR Code"
+                    className="w-48 h-48"
+                    data-testid="img-ticket-qr"
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground">Scan at metro gate</p>
+              </div>
+            )}
+
+            {/* Ticket ID */}
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-xs text-muted-foreground">ID:</span>
+              <code className="text-xs font-mono bg-muted px-2 py-0.5 rounded" data-testid="text-detail-ticket-id">
+                {ticket.id}
+              </code>
+              <button
+                onClick={handleCopyId}
+                className="p-1 rounded hover:bg-muted transition-colors"
+                aria-label="Copy ticket ID"
+              >
+                {copied ? (
+                  <CheckIcon className="w-3 h-3 text-green-500" />
+                ) : (
+                  <CopyIcon className="w-3 h-3 text-muted-foreground" />
+                )}
+              </button>
+            </div>
+
+            {/* Route */}
+            <div className="bg-muted/50 rounded-xl p-4 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="flex flex-col items-center gap-1">
+                  <CircleDotIcon className="w-4 h-4 text-green-500" />
+                  <div className="w-px h-6 bg-border" />
+                  <MapPinIcon className="w-4 h-4 text-red-500" />
+                </div>
+                <div className="flex-1 space-y-3">
+                  <div>
+                    <p className="text-sm font-semibold">{ticket.sourceName}</p>
+                    {ticket.sourcePlatform && (
+                      <p className="text-[10px] text-muted-foreground">Platform {ticket.sourcePlatform}</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">{ticket.destName}</p>
+                    {ticket.destPlatform && (
+                      <p className="text-[10px] text-muted-foreground">Platform {ticket.destPlatform}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {ticket.hasTransfer && ticket.transferStation && (
+                <div className="flex items-center gap-2 text-[11px] text-amber-600 dark:text-amber-400 bg-amber-500/10 rounded-lg px-3 py-1.5">
+                  <ArrowUpDownIcon className="w-3 h-3 flex-shrink-0" />
+                  Transfer at {ticket.transferStation} (P{ticket.transferFromPlatform} → P{ticket.transferToPlatform})
+                </div>
+              )}
+            </div>
+
+            {/* Details Grid */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="text-center p-3 bg-muted/30 rounded-lg">
+                <UsersIcon className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
+                <p className="text-sm font-bold">{ticket.passengers}</p>
+                <p className="text-[10px] text-muted-foreground">Passengers</p>
+              </div>
+              <div className="text-center p-3 bg-muted/30 rounded-lg">
+                <IndianRupeeIcon className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
+                <p className="text-sm font-bold">
+                  {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(ticket.totalFare)}
+                </p>
+                <p className="text-[10px] text-muted-foreground">Total Fare</p>
+              </div>
+              <div className="text-center p-3 bg-muted/30 rounded-lg">
+                <TrainFrontIcon className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
+                <div className="flex items-center justify-center gap-1 mt-0.5">
+                  <span className={`w-1.5 h-1.5 rounded-full ${statusColor}`} />
+                  <p className="text-sm font-bold capitalize">{ticket.status}</p>
+                </div>
+                <p className="text-[10px] text-muted-foreground">Status</p>
+              </div>
+            </div>
+
+            {/* Metadata */}
+            <div className="space-y-2 text-xs text-muted-foreground border-t pt-3">
+              <div className="flex justify-between">
+                <span>Booked</span>
+                <span className="font-medium text-foreground">
+                  {new Date(ticket.createdAt).toLocaleString("en-IN", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Payment</span>
+                <span className="font-medium text-foreground uppercase">{ticket.paymentMethod}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Demand</span>
+                <Badge variant="outline" className="text-[10px] capitalize">{ticket.demandLevel}</Badge>
+              </div>
+              {ticket.passengers > 1 && (
+                <div className="flex justify-between">
+                  <span>Per Person</span>
+                  <span className="font-medium text-foreground">
+                    {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(ticket.dynamicFare)}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

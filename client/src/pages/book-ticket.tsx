@@ -400,8 +400,8 @@ export default function BookTicket() {
                   variant="outline"
                   size="icon"
                   className="h-8 w-8 rounded-full"
-                  onClick={() => setPassengers(Math.min(6, passengers + 1))}
-                  disabled={passengers >= 6}
+                  onClick={() => setPassengers(Math.min(12, passengers + 1))}
+                  disabled={passengers >= 12}
                   data-testid="button-passenger-plus"
                 >
                   <PlusIcon className="w-3.5 h-3.5" />

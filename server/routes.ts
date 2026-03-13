@@ -407,6 +407,30 @@ export async function registerRoutes(
     res.json(tickets);
   });
 
+  app.get("/api/tickets/:ticketId/detail", requireAuth, async (req, res) => {
+    try {
+      const ticketId = Array.isArray(req.params.ticketId) ? req.params.ticketId[0] : req.params.ticketId;
+      const ticket = await storage.getTicket(ticketId);
+      if (!ticket) return res.status(404).json({ message: "Ticket not found" });
+      if (ticket.userId !== req.session.userId) {
+        return res.status(403).json({ message: "Not your ticket" });
+      }
+
+      let qrDataUrl = null;
+      if (ticket.qrData) {
+        qrDataUrl = await QRCode.toDataURL(ticket.qrData, {
+          width: 300,
+          margin: 2,
+          color: { dark: "#000000", light: "#ffffff" },
+        });
+      }
+
+      res.json({ ticket, qrDataUrl });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch ticket detail" });
+    }
+  });
+
   app.post("/api/scan", requireScanner, async (req, res) => {
     try {
       const parsed = scanTicketSchema.parse(req.body);
@@ -908,9 +932,12 @@ export async function registerRoutes(
         // Extract passengers from message
         if (!newState.passengers) {
           const numMatch = lower.match(/(\d+)\s*(passenger|people|person|ticket)/);
-          const singleWords: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6 };
+          const singleWords: Record<string, number> = {
+            one: 1, two: 2, three: 3, four: 4, five: 5, six: 6,
+            seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12
+          };
           if (numMatch) {
-            newState.passengers = Math.min(6, Math.max(1, parseInt(numMatch[1])));
+            newState.passengers = Math.min(12, Math.max(1, parseInt(numMatch[1])));
           } else {
             for (const [word, num] of Object.entries(singleWords)) {
               if (lower.includes(word)) { newState.passengers = num; break; }
@@ -919,8 +946,8 @@ export async function registerRoutes(
         }
 
         if (!newState.passengers) {
-          reply = `${newState.sourceStation.name} → ${newState.destStation.name}. How many passengers? (1 to 6)`;
-          suggestions = ["1 passenger", "2 passengers", "3 passengers"];
+          reply = `${newState.sourceStation.name} → ${newState.destStation.name}. How many passengers? (1 to 12)`;
+          suggestions = ["1 passenger", "2 passengers", "4 passengers"];
           return res.json({ reply, nextState: newState, suggestions });
         }
 

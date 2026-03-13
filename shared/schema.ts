@@ -97,7 +97,7 @@ export const loginSchema = z.object({
 export const bookTicketSchema = z.object({
   sourceStationId: z.number(),
   destStationId: z.number(),
-  passengers: z.number().min(1).max(6),
+  passengers: z.number().min(1).max(12),
   paymentMethod: z.enum(["wallet", "upi"]),
   upiId: z.string().optional(),
 });
