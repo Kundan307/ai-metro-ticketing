@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { SunIcon, MoonIcon, Loader2Icon, WalletIcon, TrainFrontIcon, GlobeIcon } from "lucide-react";
 import { AIChatbot } from "@/components/ai-chatbot";
 import { VoiceAssistant } from "@/components/voice-assistant";
+import { WeatherWidget } from "@/components/weather-widget";
 import { Link } from "wouter";
 import {
   DropdownMenu,
@@ -114,6 +115,7 @@ function HeaderBar() {
             </div>
           </Link>
         )}
+        <WeatherWidget />
         <LanguageSelector />
         <ThemeToggle />
       </div>

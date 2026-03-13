@@ -432,6 +432,11 @@ export default function BookTicket() {
                   )}
                 </div>
                 <div className="text-right">
+                  {pricing.multiplier > 1 && (
+                    <p className="text-xs text-muted-foreground line-through mb-0.5 mt-[-4px]">
+                      {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(pricing.baseFare * passengers)}
+                    </p>
+                  )}
                   <p className="text-2xl font-bold text-primary" data-testid="text-total-fare">
                     {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(totalFare)}
                   </p>

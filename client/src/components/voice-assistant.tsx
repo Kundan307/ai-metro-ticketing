@@ -214,7 +214,7 @@ export function VoiceAssistant() {
     <>
       {/* FAB — Mic button */}
       <button
-        className="fixed bottom-5 left-5 z-50 group"
+        className="fixed bottom-10 left-80 z-50 group"
         style={{ display: isOpen ? "none" : "block" }}
         onClick={handleOpen}
         aria-label="Open voice assistant"
@@ -234,7 +234,7 @@ export function VoiceAssistant() {
       {/* Voice Assistant Panel */}
       {isOpen && (
         <div
-          className="fixed bottom-5 left-5 z-50 flex flex-col rounded-2xl border border-border bg-background shadow-2xl overflow-hidden"
+          className="fixed bottom-32 left-80 z-50 flex flex-col rounded-2xl border border-border bg-background shadow-2xl overflow-hidden"
           style={{ width: "370px", height: "540px" }}
         >
           {/* Header */}
