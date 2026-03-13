@@ -9,8 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import {
   ScanLineIcon, CheckCircleIcon, XCircleIcon, ShieldAlertIcon, RefreshCcwIcon,
   TrainFrontIcon, UsersIcon, IndianRupeeIcon, AlertCircleIcon, Loader2Icon,
+  ArrowRightToLineIcon, ArrowLeftFromLineIcon, Settings2Icon,
 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/components/language-provider";
@@ -84,6 +86,7 @@ export default function ScannerPage() {
 
   const [manualTicket, setManualTicket] = useState("");
   const [isScanning, setIsScanning] = useState(false);
+  const [scanMode, setScanMode] = useState<"auto" | "entry" | "exit">("auto");
   const [lastResult, setLastResult] = useState<ScanResult | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
 
@@ -93,7 +96,9 @@ export default function ScannerPage() {
 
   const scanMutation = useMutation({
     mutationFn: async (ticketId: string) => {
-      const res = await apiRequest("POST", "/api/scan", { ticketId });
+      const payload: any = { ticketId };
+      if (scanMode !== "auto") payload.scanType = scanMode;
+      const res = await apiRequest("POST", "/api/scan", payload);
       return await res.json() as ScanResult;
     },
     onSuccess: (data) => {
@@ -199,6 +204,36 @@ export default function ScannerPage() {
         </h1>
         <p className="text-muted-foreground mt-1">{t("scanner.subtitle")}</p>
       </div>
+
+      {/* Mode Selector */}
+      <Card>
+        <CardContent className="p-3">
+          <div className="flex flex-col sm:flex-row items-center gap-3 justify-between">
+            <span className="text-sm font-semibold flex items-center gap-2">
+              <Settings2Icon className="w-4 h-4 text-muted-foreground" />
+              Scanner Mode
+            </span>
+            <ToggleGroup 
+              type="single" 
+              value={scanMode} 
+              onValueChange={(val) => val && setScanMode(val as any)}
+              className="justify-start sm:justify-end border rounded-md p-1"
+            >
+              <ToggleGroupItem value="auto" aria-label="Auto detect mode" className="text-xs px-3 h-8">
+                Auto
+              </ToggleGroupItem>
+              <ToggleGroupItem value="entry" aria-label="Entry Gate mode" className="text-xs px-3 h-8 gap-1.5">
+                <ArrowRightToLineIcon className="w-3.5 h-3.5" />
+                Entry
+              </ToggleGroupItem>
+              <ToggleGroupItem value="exit" aria-label="Exit Gate mode" className="text-xs px-3 h-8 gap-1.5">
+                <ArrowLeftFromLineIcon className="w-3.5 h-3.5" />
+                Exit
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Camera */}
       <Card className="overflow-hidden">
