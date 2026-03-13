@@ -675,6 +675,327 @@ export async function registerRoutes(
     }
   });
 
+  // ── Voice Assistant: Conversational Booking ──────────────────────
+  interface VoiceState {
+    intent?: string;
+    sourceStation?: { id: number; name: string };
+    destStation?: { id: number; name: string };
+    passengers?: number;
+    paymentMethod?: string;
+    awaitingConfirmation?: boolean;
+  }
+
+  function fuzzyMatchStation(
+    text: string,
+    stations: { id: number; name: string; line: string; orderIndex: number }[]
+  ): { id: number; name: string } | null {
+    const lower = text.toLowerCase();
+    // Exact match first
+    const exact = stations.find((s) => lower.includes(s.name.toLowerCase()));
+    if (exact) return { id: exact.id, name: exact.name };
+    // Word-level fuzzy match — match if any significant word of the station name is found
+    for (const s of stations) {
+      const words = s.name.toLowerCase().split(/\s+/);
+      for (const w of words) {
+        if (w.length > 3 && lower.includes(w)) return { id: s.id, name: s.name };
+      }
+    }
+    return null;
+  }
+
+  app.post("/api/voice-book", async (req, res) => {
+    try {
+      const { message, conversationState } = req.body as {
+        message: string;
+        conversationState?: VoiceState;
+      };
+      if (!message || typeof message !== "string") {
+        return res.status(400).json({ message: "Message is required" });
+      }
+
+      const lower = message.toLowerCase();
+      const allStations = await storage.getAllStations();
+      const state: VoiceState = conversationState || {};
+      let reply = "";
+      let action: string | undefined;
+      let suggestions: string[] = [];
+      let ticketData: any = undefined;
+
+      // ── Intent detection ──
+      const isGreet = /^(hi|hello|hey|good|namaste|help)/i.test(lower);
+      const isBooking =
+        lower.includes("book") ||
+        lower.includes("ticket") ||
+        lower.includes("travel") ||
+        lower.includes("go to") ||
+        lower.includes("go from") ||
+        lower.includes("want to go");
+      const isCancel = lower.includes("cancel") || lower.includes("stop") || lower.includes("never mind") || lower.includes("nevermind");
+      const isYes = /^(yes|yeah|yep|confirm|ok|okay|sure|proceed|book it|do it|haan|ha)/i.test(lower.trim());
+      const isNo = /^(no|nah|nope|don't|cancel|nahi)/i.test(lower.trim());
+
+      // ── Handle cancel ──
+      if (isCancel) {
+        reply = "No problem! I've cancelled the booking. Feel free to start again whenever you're ready.";
+        return res.json({ reply, nextState: {}, suggestions: ["Book a ticket", "Check crowd", "Train timings"] });
+      }
+
+      // ── Confirmation flow ──
+      if (state.awaitingConfirmation) {
+        if (isYes && state.sourceStation && state.destStation && state.passengers && state.paymentMethod) {
+          // Actually book the ticket
+          if (!req.session.userId) {
+            reply = "You need to be logged in to book a ticket. Please log in and try again.";
+            return res.json({ reply, nextState: {}, suggestions: ["Log in"] });
+          }
+
+          const source = await storage.getStation(state.sourceStation.id);
+          const dest = await storage.getStation(state.destStation.id);
+          if (!source || !dest) {
+            reply = "Sorry, I couldn't find those stations. Let's start over.";
+            return res.json({ reply, nextState: {}, suggestions: ["Book a ticket"] });
+          }
+
+          const hour = new Date().getHours();
+          const demandLevel = getDemandLevel(hour, dest.crowdLevel);
+          const multiplier = getPricingMultiplier(demandLevel);
+          const baseFare = calculateBaseFare(source.orderIndex, dest.orderIndex);
+          const dynamicFare = Math.round(baseFare * multiplier);
+          const totalFare = dynamicFare * state.passengers;
+
+          if (state.paymentMethod === "wallet") {
+            const user = await storage.getUserById(req.session.userId);
+            if (!user || user.walletBalance < totalFare) {
+              reply = `Insufficient wallet balance. You need ₹${totalFare} but have ₹${user?.walletBalance ?? 0}. Please top up your wallet first.`;
+              return res.json({ reply, nextState: {}, suggestions: ["Top up wallet", "Book with UPI"] });
+            }
+            await storage.updateWalletBalance(user.id, user.walletBalance - totalFare);
+            await storage.createWalletTransaction(user.id, -totalFare, "debit",
+              `Voice Booking: ${source.name} → ${dest.name} (${state.passengers} passenger${state.passengers > 1 ? "s" : ""})`
+            );
+          }
+
+          const securityHash = crypto
+            .createHash("sha256")
+            .update(`${req.session.userId}:${source.name}:${dest.name}:${totalFare}:${Date.now()}`)
+            .digest("hex")
+            .substring(0, 16);
+
+          const platformFor = (line: string) => line === "purple" ? 1 : 2;
+          const sourcePlatform = platformFor(source.line);
+          const destPlatform = platformFor(dest.line);
+          const hasTransfer = source.line !== dest.line;
+          const transferStation = hasTransfer ? "Kempegowda Majestic" : null;
+
+          const ticket = await storage.createTicket({
+            userId: req.session.userId,
+            sourceStationId: source.id,
+            destStationId: dest.id,
+            sourceName: source.name,
+            destName: dest.name,
+            passengers: state.passengers,
+            baseFare,
+            dynamicFare,
+            totalFare,
+            pricingMultiplier: multiplier,
+            demandLevel,
+            paymentMethod: state.paymentMethod,
+            status: "active",
+            qrData: null,
+            isFraudulent: false,
+            fraudReason: null,
+            sourcePlatform,
+            destPlatform,
+            hasTransfer,
+            transferStation,
+            transferFromPlatform: hasTransfer ? sourcePlatform : null,
+            transferToPlatform: hasTransfer ? destPlatform : null,
+            scannedAt: null,
+          });
+
+          const qrPayload = JSON.stringify({
+            ticketId: ticket.id,
+            source: source.name,
+            destination: dest.name,
+            sourcePlatform,
+            destPlatform,
+            passengers: state.passengers,
+            fare: totalFare,
+            timestamp: ticket.createdAt,
+            hash: securityHash,
+          });
+
+          const qrDataUrl = await QRCode.toDataURL(qrPayload, { width: 300, margin: 2 });
+          await storage.updateTicket(ticket.id, { qrData: qrPayload });
+          const user = await storage.getUserById(req.session.userId);
+
+          reply = `Your ticket has been booked! 🎉\n\n` +
+            `📍 ${source.name} → ${dest.name}\n` +
+            `👥 ${state.passengers} passenger${state.passengers > 1 ? "s" : ""}\n` +
+            `💰 ₹${totalFare} via ${state.paymentMethod}\n\n` +
+            `Your QR code is ready in My Tickets. Have a great journey!`;
+
+          ticketData = { ticket, qrDataUrl, walletBalance: user?.walletBalance };
+          return res.json({ reply, nextState: {}, action: "booked", ticketData, suggestions: ["Book another ticket", "View my tickets"] });
+
+        } else if (isNo) {
+          reply = "Booking cancelled. Would you like to start over or change something?";
+          return res.json({ reply, nextState: { ...state, awaitingConfirmation: false }, suggestions: ["Change station", "Start over"] });
+        } else {
+          reply = "Please confirm — should I book this ticket? Say 'yes' to confirm or 'no' to cancel.";
+          return res.json({ reply, nextState: state, suggestions: ["Yes, book it", "No, cancel"] });
+        }
+      }
+
+      // ── Greeting ──
+      if (isGreet && !state.intent) {
+        const hour = new Date().getHours();
+        const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+        reply = `${greeting}! 👋 I'm your Namma Metro voice assistant.\n\nI can help you book tickets, check routes, and get metro info — all by voice!\n\nJust say something like "Book a ticket from Indiranagar to Majestic" to get started.`;
+        suggestions = ["Book a ticket", "Train timings", "Crowd levels"];
+        return res.json({ reply, nextState: { intent: "greeting" }, suggestions });
+      }
+
+      // ── Booking flow: try to extract stations from the message ──
+      if (isBooking || state.intent === "booking") {
+        const newState: VoiceState = { ...state, intent: "booking" };
+
+        // Try to find source & destination from message
+        if (!newState.sourceStation || !newState.destStation) {
+          // Try to find two stations
+          const matched: { id: number; name: string }[] = [];
+          for (const s of allStations) {
+            const words = s.name.toLowerCase().split(/\s+/);
+            if (lower.includes(s.name.toLowerCase()) || words.some((w) => w.length > 3 && lower.includes(w))) {
+              if (!matched.find((m) => m.id === s.id)) {
+                matched.push({ id: s.id, name: s.name });
+              }
+            }
+          }
+
+          // "from X to Y" pattern — first mention is source, second is dest
+          if (matched.length >= 2 && !newState.sourceStation && !newState.destStation) {
+            newState.sourceStation = matched[0];
+            newState.destStation = matched[1];
+          } else if (matched.length === 1) {
+            if (!newState.sourceStation) {
+              newState.sourceStation = matched[0];
+            } else if (!newState.destStation && matched[0].id !== newState.sourceStation.id) {
+              newState.destStation = matched[0];
+            }
+          }
+        }
+
+        // Ask for missing slots
+        if (!newState.sourceStation) {
+          reply = "Sure, let's book a ticket! Which station are you starting from?";
+          suggestions = ["Indiranagar", "Majestic", "MG Road", "Yeshwanthpur"];
+          return res.json({ reply, nextState: newState, suggestions });
+        }
+
+        if (!newState.destStation) {
+          reply = `Starting from ${newState.sourceStation.name}. Where would you like to go?`;
+          suggestions = ["Majestic", "Nagasandra", "Silk Institute", "Kengeri"];
+          return res.json({ reply, nextState: newState, suggestions });
+        }
+
+        if (newState.sourceStation.id === newState.destStation.id) {
+          reply = "The source and destination can't be the same! Please tell me a different destination.";
+          newState.destStation = undefined;
+          return res.json({ reply, nextState: newState, suggestions: ["Majestic", "Indiranagar", "Jayanagar"] });
+        }
+
+        // Extract passengers from message
+        if (!newState.passengers) {
+          const numMatch = lower.match(/(\d+)\s*(passenger|people|person|ticket)/);
+          const singleWords: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6 };
+          if (numMatch) {
+            newState.passengers = Math.min(6, Math.max(1, parseInt(numMatch[1])));
+          } else {
+            for (const [word, num] of Object.entries(singleWords)) {
+              if (lower.includes(word)) { newState.passengers = num; break; }
+            }
+          }
+        }
+
+        if (!newState.passengers) {
+          reply = `${newState.sourceStation.name} → ${newState.destStation.name}. How many passengers? (1 to 6)`;
+          suggestions = ["1 passenger", "2 passengers", "3 passengers"];
+          return res.json({ reply, nextState: newState, suggestions });
+        }
+
+        // Extract payment method
+        if (!newState.paymentMethod) {
+          if (lower.includes("wallet")) newState.paymentMethod = "wallet";
+          else if (lower.includes("upi")) newState.paymentMethod = "upi";
+        }
+
+        if (!newState.paymentMethod) {
+          reply = `Got it — ${newState.passengers} passenger${newState.passengers > 1 ? "s" : ""}. How would you like to pay — wallet or UPI?`;
+          suggestions = ["Wallet", "UPI"];
+          return res.json({ reply, nextState: newState, suggestions });
+        }
+
+        // All slots filled — calculate fare and ask for confirmation
+        const source = await storage.getStation(newState.sourceStation.id);
+        const dest = await storage.getStation(newState.destStation.id);
+        if (!source || !dest) {
+          reply = "Sorry, I couldn't find those stations. Let's try again.";
+          return res.json({ reply, nextState: {}, suggestions: ["Book a ticket"] });
+        }
+
+        const hour = new Date().getHours();
+        const demandLevel = getDemandLevel(hour, dest.crowdLevel);
+        const multiplier = getPricingMultiplier(demandLevel);
+        const baseFare = calculateBaseFare(source.orderIndex, dest.orderIndex);
+        const dynamicFare = Math.round(baseFare * multiplier);
+        const totalFare = dynamicFare * newState.passengers;
+
+        newState.awaitingConfirmation = true;
+
+        reply = `Here's your booking summary:\n\n` +
+          `📍 ${source.name} → ${dest.name}\n` +
+          `👥 ${newState.passengers} passenger${newState.passengers > 1 ? "s" : ""}\n` +
+          `💰 Total fare: ₹${totalFare} (via ${newState.paymentMethod})\n\n` +
+          `Shall I confirm this booking?`;
+        suggestions = ["Yes, book it", "No, cancel"];
+        return res.json({ reply, nextState: newState, suggestions });
+      }
+
+      // ── Fallback: delegate to the existing chatbot logic ──
+      // Forward to the regular chatbot patterns for non-booking queries
+      const purpleStations = allStations.filter((s) => s.line === "purple").sort((a, b) => a.orderIndex - b.orderIndex);
+      const greenStations = allStations.filter((s) => s.line === "green").sort((a, b) => a.orderIndex - b.orderIndex);
+      const hour = new Date().getHours();
+      const isPeak = (hour >= 8 && hour <= 10) || (hour >= 17 && hour <= 19);
+      const isOperating = hour >= 5 && hour <= 23;
+
+      if (lower.includes("timing") || lower.includes("next train") || lower.includes("schedule")) {
+        const freq = isPeak ? "3–5 minutes" : "5–10 minutes";
+        reply = isOperating
+          ? `Trains are running now. Current frequency: every ${freq}. ${isPeak ? "It's peak hour." : "Off-peak — comfortable travel."}`
+          : `Metro is closed. First train at 5:00 AM, last at 11:00 PM.`;
+        suggestions = ["Book a ticket", "Crowd levels", "Route info"];
+      } else if (lower.includes("crowd") || lower.includes("busy")) {
+        const highCrowd = allStations.filter((s) => s.crowdLevel === "high");
+        reply = highCrowd.length > 0
+          ? `High crowd at: ${highCrowd.slice(0, 4).map((s) => s.name).join(", ")}. ${isPeak ? "Peak hours active." : "Off-peak now."}`
+          : `All stations are relatively uncrowded right now. Great time to travel!`;
+        suggestions = ["Book a ticket", "Train timings", "Route info"];
+      } else if (lower.includes("fare") || lower.includes("price") || lower.includes("cost")) {
+        reply = `Fares start at ₹10 with ₹5 per additional station. Peak hours (8-10 AM, 5-7 PM) add up to 20% surge.`;
+        suggestions = ["Book a ticket", "Train timings", "Crowd levels"];
+      } else {
+        reply = `I'm your voice assistant for Namma Metro! I can help you:\n\n• Book tickets — just say "Book a ticket"\n• Check train timings\n• Get crowd info\n• Know the fares\n\nWhat would you like to do?`;
+        suggestions = ["Book a ticket", "Train timings", "Crowd levels", "Fare info"];
+      }
+
+      return res.json({ reply, nextState: state, suggestions });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Voice assistant error" });
+    }
+  });
+
   app.get("/api/route/:sourceId/:destId", async (req, res) => {
     try {
       const sourceId = parseInt(req.params.sourceId);

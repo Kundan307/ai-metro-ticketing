@@ -12,6 +12,7 @@ import { type Language, languageNames } from "@/lib/translations";
 import { Button } from "@/components/ui/button";
 import { SunIcon, MoonIcon, Loader2Icon, WalletIcon, TrainFrontIcon, GlobeIcon } from "lucide-react";
 import { AIChatbot } from "@/components/ai-chatbot";
+import { VoiceAssistant } from "@/components/voice-assistant";
 import { Link } from "wouter";
 import {
   DropdownMenu,
@@ -138,6 +139,7 @@ function AppLayout() {
         </div>
       </div>
       <AIChatbot />
+      <VoiceAssistant />
     </SidebarProvider>
   );
 }
