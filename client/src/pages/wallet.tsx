@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
+import { useTranslation } from "@/components/language-provider";
 import {
   WalletIcon,
   PlusIcon,
@@ -19,6 +20,7 @@ import {
 import type { WalletTransaction } from "@shared/schema";
 
 export default function Wallet() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { user, refetchUser } = useAuth();
   const queryClient = useQueryClient();
@@ -39,10 +41,10 @@ export default function Wallet() {
       setTopUpAmount("");
       refetchUser();
       queryClient.invalidateQueries({ queryKey: ["/api/wallet/transactions"] });
-      toast({ title: "Top-up Successful!", description: `Added ${topUpAmount} to your wallet` });
+      toast({ title: t("wallet.topUpSuccess"), description: `${t("wallet.topUpAdded")}: ${topUpAmount}` });
     },
     onError: (error: Error) => {
-      toast({ title: "Top-up Failed", description: error.message, variant: "destructive" });
+      toast({ title: t("wallet.topUpFailed"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -56,8 +58,8 @@ export default function Wallet() {
     <div className="p-4 md:p-6 overflow-y-auto h-full">
       <div className="max-w-2xl mx-auto space-y-5">
         <div className="flex flex-col gap-0.5">
-          <h1 className="text-xl font-bold tracking-tight" data-testid="text-wallet-title">My Wallet</h1>
-          <p className="text-xs text-muted-foreground">Manage your metro wallet balance</p>
+          <h1 className="text-xl font-bold tracking-tight" data-testid="text-wallet-title">{t("wallet.title")}</h1>
+          <p className="text-xs text-muted-foreground">{t("wallet.subtitle")}</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -65,7 +67,7 @@ export default function Wallet() {
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
-                  <p className="text-xs opacity-70">Available Balance</p>
+                  <p className="text-xs opacity-70">{t("wallet.availableBalance")}</p>
                   <p className="text-2xl font-bold" data-testid="text-balance">
                     {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(user?.walletBalance ?? 0)}
                   </p>
@@ -80,7 +82,7 @@ export default function Wallet() {
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Total Spent</p>
+                  <p className="text-xs text-muted-foreground">{t("wallet.totalSpent")}</p>
                   <p className="text-2xl font-bold">
                     {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(totalSpent)}
                   </p>
@@ -97,7 +99,7 @@ export default function Wallet() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <PlusIcon className="w-4 h-4" />
-              Add Money
+              {t("wallet.addMoney")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -116,10 +118,10 @@ export default function Wallet() {
               ))}
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium">Custom Amount</Label>
+              <Label className="text-xs font-medium">{t("wallet.customAmount")}</Label>
               <Input
                 type="number"
-                placeholder="Enter amount (50 - 10,000)"
+                placeholder={t("wallet.enterAmount")}
                 value={topUpAmount}
                 onChange={(e) => setTopUpAmount(e.target.value)}
                 min={50}
@@ -133,14 +135,14 @@ export default function Wallet() {
               disabled={topUpMutation.isPending || !topUpAmount || parseFloat(topUpAmount) < 50}
               data-testid="button-topup-submit"
             >
-              {topUpMutation.isPending ? "Processing..." : "Add Money to Wallet"}
+              {topUpMutation.isPending ? t("bookTicket.processing") : t("wallet.addMoneyBtn")}
             </Button>
           </CardContent>
         </Card>
 
         <Card data-testid="card-transactions">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold">Transaction History</CardTitle>
+            <CardTitle className="text-sm font-semibold">{t("wallet.history")}</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -153,7 +155,7 @@ export default function Wallet() {
               <div className="py-8 text-center">
                 <WalletIcon className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
                 <p className="text-sm text-muted-foreground" data-testid="text-no-transactions">
-                  No transactions yet
+                  {t("wallet.noTransactions")}
                 </p>
               </div>
             ) : (

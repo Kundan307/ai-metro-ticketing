@@ -21,8 +21,10 @@ import {
 } from "recharts";
 import type { Station } from "@shared/schema";
 import { getCrowdColor } from "@/lib/metro-data";
+import { useTranslation } from "@/components/language-provider";
 
 export default function CrowdMonitor() {
+  const { t } = useTranslation();
   const { data: stations, isLoading } = useQuery<Station[]>({
     queryKey: ["/api/stations"],
     refetchInterval: 10000,
@@ -56,10 +58,10 @@ export default function CrowdMonitor() {
     <div className="p-4 md:p-6 overflow-y-auto h-full space-y-5">
       <div className="flex flex-col gap-0.5">
         <h1 className="text-xl font-bold tracking-tight" data-testid="text-crowd-title">
-          Live Crowd Info
+          {t("crowd.title")}
         </h1>
         <p className="text-xs text-muted-foreground">
-          Real-time crowd levels across all stations (updates every 10s)
+          {t("crowd.subtitle")}
         </p>
       </div>
 
@@ -68,7 +70,7 @@ export default function CrowdMonitor() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between gap-1">
               <div>
-                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Total</p>
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{t("crowd.total")}</p>
                 <p className="text-xl font-bold">{totalPassengers.toLocaleString()}</p>
               </div>
               <UsersIcon className="w-4 h-4 text-muted-foreground" />
@@ -79,7 +81,7 @@ export default function CrowdMonitor() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between gap-1">
               <div>
-                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Low</p>
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{t("crowd.low")}</p>
                 <p className="text-xl font-bold" style={{ color: "#22c55e" }}>{lowCount}</p>
               </div>
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#22c55e" }} />
@@ -90,7 +92,7 @@ export default function CrowdMonitor() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between gap-1">
               <div>
-                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Medium</p>
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{t("crowd.medium")}</p>
                 <p className="text-xl font-bold" style={{ color: "#eab308" }}>{medCount}</p>
               </div>
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#eab308" }} />
@@ -101,7 +103,7 @@ export default function CrowdMonitor() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between gap-1">
               <div>
-                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">High</p>
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{t("crowd.high")}</p>
                 <p className="text-xl font-bold" style={{ color: "#ef4444" }}>{highCount}</p>
               </div>
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#ef4444" }} />
@@ -116,7 +118,7 @@ export default function CrowdMonitor() {
             <div className="flex items-center gap-2 mb-2">
               <AlertTriangleIcon className="w-4 h-4 text-destructive" />
               <span className="text-sm font-semibold text-destructive">
-                High Crowd Alert - {crowdedStations.length} Station{crowdedStations.length > 1 ? "s" : ""}
+                {t("crowd.alert")} - {crowdedStations.length} {crowdedStations.length > 1 ? t("routePlanner.stations") : t("ticket.platform")}
               </span>
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -134,7 +136,7 @@ export default function CrowdMonitor() {
             <div className="flex items-center gap-2">
               <ShieldCheckIcon className="w-4 h-4 text-chart-2" />
               <span className="text-sm font-medium text-chart-2">
-                All stations are within normal capacity
+                {t("crowd.normalCapacity")}
               </span>
             </div>
           </CardContent>
@@ -146,7 +148,7 @@ export default function CrowdMonitor() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <ActivityIcon className="w-4 h-4" />
-              Top 10 Busiest Stations
+              {t("crowd.busiestStations")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -186,7 +188,7 @@ export default function CrowdMonitor() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <UsersIcon className="w-4 h-4" />
-              Station Capacity
+              {t("crowd.stationCapacity")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -209,7 +211,7 @@ export default function CrowdMonitor() {
 
       <Card data-testid="card-all-stations-crowd">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold">All Stations</CardTitle>
+          <CardTitle className="text-sm font-semibold">{t("crowd.allStations")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">

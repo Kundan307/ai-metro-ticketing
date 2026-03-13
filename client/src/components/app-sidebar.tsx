@@ -130,7 +130,7 @@ export function AppSidebar() {
                     <Link href="/scanner">
                       <a data-testid="link-nav-scanner" className="flex items-center gap-2">
                         <ScanLineIcon className="w-4 h-4" />
-                        <span>QR Scanner</span>
+                        <span>{t("sidebar.qrScanner")}</span>
                       </a>
                     </Link>
                   </SidebarMenuButton>
@@ -142,7 +142,7 @@ export function AppSidebar() {
                     <Link href="/admin">
                       <a data-testid="link-nav-admin" className="flex items-center gap-2">
                         <ShieldCheckIcon className="w-4 h-4" />
-                        <span>Admin Dashboard</span>
+                        <span>{t("sidebar.adminDashboard")}</span>
                       </a>
                     </Link>
                   </SidebarMenuButton>

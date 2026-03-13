@@ -6,8 +6,10 @@ import { type ScanLog } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ShieldCheckIcon, AlertTriangleIcon, UserCheckIcon, ClockIcon, CheckCircleIcon } from "lucide-react";
 import { format } from "date-fns";
+import { useTranslation } from "@/components/language-provider";
 
 export default function AdminDashboard() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
 
@@ -45,60 +47,60 @@ export default function AdminDashboard() {
       <div className="space-y-1">
         <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
           <ShieldCheckIcon className="w-8 h-8 text-primary" />
-          Admin Dashboard
+          {t("admin.title")}
         </h1>
         <p className="text-muted-foreground">
-          Monitor metro operations and live passenger flow.
+          {t("admin.subtitle")}
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card className="bg-primary/5 border-primary/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Bookings</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("admin.totalBookings")}</CardTitle>
             <ClockIcon className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-primary">{adminStats?.totalBooked || 0}</div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Total Passengers Booked</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">{t("admin.totalPassengersBooked")}</p>
           </CardContent>
         </Card>
         <Card className="bg-green-500/5 border-green-500/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-green-600">Active in Metro</CardTitle>
+            <CardTitle className="text-sm font-medium text-green-600">{t("admin.activeInMetro")}</CardTitle>
             <UserCheckIcon className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{adminStats?.currentlyInSystem || 0}</div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Passengers inside stations</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">{t("admin.passengersInside")}</p>
           </CardContent>
         </Card>
         <Card className="bg-blue-500/5 border-blue-500/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-blue-600">Trips Completed</CardTitle>
+            <CardTitle className="text-sm font-medium text-blue-600">{t("admin.tripsCompleted")}</CardTitle>
             <CheckCircleIcon className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">{adminStats?.totalCompleted || 0}</div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Trips fully completed</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">{t("admin.tripsFullyCompleted")}</p>
           </CardContent>
         </Card>
         <Card className="bg-destructive/5 border-destructive/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-destructive">Fraud Alerts</CardTitle>
+            <CardTitle className="text-sm font-medium text-destructive">{t("admin.fraudAlerts")}</CardTitle>
             <AlertTriangleIcon className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-destructive">{fraudScans.length}</div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Suspicious activities</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">{t("admin.suspiciousActivities")}</p>
           </CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent Scan Activity (Live)</CardTitle>
-          <CardDescription>Real-time feed of ticket validations.</CardDescription>
+          <CardTitle>{t("admin.recentScanActivity")}</CardTitle>
+          <CardDescription>{t("admin.realTimeFeed")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-8">
@@ -136,19 +138,19 @@ export default function AdminDashboard() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Registered Users ({usersData?.length || 0})</CardTitle>
-          <CardDescription>View all passengers and staff accounts.</CardDescription>
+          <CardTitle>{t("admin.registeredUsers")} ({usersData?.length || 0})</CardTitle>
+          <CardDescription>{t("admin.viewPassengersStaff")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead className="text-xs text-muted-foreground bg-muted/50 uppercase">
                 <tr>
-                  <th className="px-4 py-3 rounded-tl-md">ID</th>
-                  <th className="px-4 py-3">Name</th>
-                  <th className="px-4 py-3">Role</th>
-                  <th className="px-4 py-3">Email</th>
-                  <th className="px-4 py-3 rounded-tr-md">Joined</th>
+                  <th className="px-4 py-3 rounded-tl-md">{t("admin.id")}</th>
+                  <th className="px-4 py-3">{t("admin.name")}</th>
+                  <th className="px-4 py-3">{t("admin.role")}</th>
+                  <th className="px-4 py-3">{t("admin.email")}</th>
+                  <th className="px-4 py-3 rounded-tr-md">{t("admin.joined")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -173,7 +175,7 @@ export default function AdminDashboard() {
                 ))}
                 {!usersData && (
                   <tr>
-                    <td colSpan={5} className="text-center py-6 text-muted-foreground">Loading users...</td>
+                    <td colSpan={5} className="text-center py-6 text-muted-foreground">{t("admin.loadingUsers")}</td>
                   </tr>
                 )}
               </tbody>

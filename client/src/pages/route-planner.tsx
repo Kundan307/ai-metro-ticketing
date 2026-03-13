@@ -122,18 +122,18 @@ export default function RoutePlanner() {
             <div className="space-y-1.5">
               <Label className="text-xs font-medium flex items-center gap-1.5">
                 <CircleDotIcon className="w-3 h-3 text-chart-2" />
-                From
+                {t("label.from")}
               </Label>
               <Select value={sourceId} onValueChange={setSourceId}>
                 <SelectTrigger data-testid="select-route-source" className="h-11">
-                  <SelectValue placeholder="Select departure station" />
+                  <SelectValue placeholder={t("routePlanner.selectDeparture")} />
                 </SelectTrigger>
                 <SelectContent>
                   {purpleStations.length > 0 && (
                     <>
                       <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full" style={{ backgroundColor: "#7B2D8E" }} />
-                        Purple Line
+                        {t("routePlanner.purpleLine")}
                       </div>
                       {purpleStations.map((s) => (
                         <SelectItem key={s.id} value={String(s.id)} data-testid={`option-route-source-${s.id}`}>
@@ -146,7 +146,7 @@ export default function RoutePlanner() {
                     <>
                       <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full" style={{ backgroundColor: "#00A651" }} />
-                        Green Line
+                        {t("routePlanner.greenLine")}
                       </div>
                       {greenStations.map((s) => (
                         <SelectItem key={s.id} value={String(s.id)} data-testid={`option-route-source-${s.id}`}>
@@ -175,11 +175,11 @@ export default function RoutePlanner() {
             <div className="space-y-1.5">
               <Label className="text-xs font-medium flex items-center gap-1.5">
                 <MapPinIcon className="w-3 h-3 text-destructive" />
-                To
+                {t("label.to")}
               </Label>
               <Select value={destId} onValueChange={setDestId}>
                 <SelectTrigger data-testid="select-route-dest" className="h-11">
-                  <SelectValue placeholder="Select arrival station" />
+                  <SelectValue placeholder={t("routePlanner.selectArrival")} />
                 </SelectTrigger>
                 <SelectContent>
                   {purpleStations.length > 0 && (
@@ -218,7 +218,7 @@ export default function RoutePlanner() {
           <Card>
             <CardContent className="py-5">
               <p className="text-sm text-muted-foreground text-center" data-testid="text-same-station-warning">
-                Please select different source and destination stations.
+                {t("routePlanner.differentStations")}
               </p>
             </CardContent>
           </Card>
@@ -265,12 +265,12 @@ export default function RoutePlanner() {
                         {route.transfers > 0 && (
                           <Badge variant="outline" className="text-[10px]" data-testid={`badge-transfers-${route.type}`}>
                             <RepeatIcon className="w-3 h-3 mr-1" />
-                            {route.transfers} transfer
+                            {route.transfers} {t("routePlanner.transfer")}
                           </Badge>
                         )}
                         {route.transfers === 0 && (
                           <Badge variant="outline" className="text-[10px]" data-testid={`badge-direct-${route.type}`}>
-                            Direct
+                            {t("routePlanner.direct")}
                           </Badge>
                         )}
                       </div>
@@ -296,10 +296,10 @@ export default function RoutePlanner() {
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                   <Badge variant="outline" className="text-[9px] border-dashed">
-                                    Switch to Platform {station.platform}
+                                    {t("routePlanner.switchToPlatform")} {station.platform}
                                   </Badge>
                                   <span className="text-[10px] text-muted-foreground capitalize">
-                                    {station.line} Line
+                                    {t(`routePlanner.${station.line}Line`)}
                                   </span>
                                 </div>
                               </div>
@@ -331,7 +331,7 @@ export default function RoutePlanner() {
                                 )}
                                 {station.isTransfer && (
                                   <Badge variant="outline" className="text-[9px]">
-                                    Transfer
+                                    {t("routePlanner.transfer")}
                                   </Badge>
                                 )}
                                 <Badge
@@ -349,22 +349,22 @@ export default function RoutePlanner() {
                     </div>
                     <div className="mt-3 pt-3 border-t flex items-center gap-4 flex-wrap text-xs text-muted-foreground">
                       <span data-testid={`text-station-count-${route.type}`}>
-                        {route.stations.length} stations
+                        {route.stations.length} {t("routePlanner.stations")}
                       </span>
                       {route.transferStation && (
                         <span data-testid={`text-transfer-station-${route.type}`}>
-                          Transfer at {route.transferStation}
+                          {t("routePlanner.transferAt")} {route.transferStation}
                           {route.transferPlatforms && ` (P${route.transferPlatforms.from} → P${route.transferPlatforms.to})`}
                         </span>
                       )}
                       {route.estimatedFare != null && (
                         <span data-testid={`text-fare-${route.type}`}>
-                          Est. fare: ₹{route.estimatedFare}
+                          {t("routePlanner.estFare")}: ₹{route.estimatedFare}
                         </span>
                       )}
                       {route.bestTimeToTravel && (
                         <span className="text-primary font-medium" data-testid={`text-best-time-${route.type}`}>
-                          Best time: {route.bestTimeToTravel}
+                          {t("routePlanner.bestTime")}: {route.bestTimeToTravel}
                         </span>
                       )}
                     </div>

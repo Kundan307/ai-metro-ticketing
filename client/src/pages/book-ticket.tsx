@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
+import { useTranslation } from "@/components/language-provider";
 import {
   CreditCardIcon,
   WalletIcon,
@@ -34,6 +35,7 @@ import {
 import type { Station, Ticket } from "@shared/schema";
 
 export default function BookTicket() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { user, refetchUser } = useAuth();
   const queryClient = useQueryClient();
@@ -108,8 +110,8 @@ export default function BookTicket() {
               <CheckCircleIcon className="w-8 h-8 text-chart-2" />
             </div>
             <div>
-              <h2 className="text-xl font-bold" data-testid="text-booking-success">Ticket Booked!</h2>
-              <p className="text-sm text-muted-foreground">Show this QR code at the metro gate</p>
+              <h2 className="text-xl font-bold" data-testid="text-booking-success">{t("ticket.booked")}</h2>
+              <p className="text-sm text-muted-foreground">{t("ticket.showQR")}</p>
             </div>
           </div>
 
@@ -119,10 +121,10 @@ export default function BookTicket() {
                 <div className="flex items-center justify-between gap-1">
                   <div className="flex items-center gap-2">
                     <TrainFrontIcon className="w-5 h-5 text-primary-foreground" />
-                    <span className="text-sm font-bold text-primary-foreground">SmartAI Metro</span>
+                    <span className="text-sm font-bold text-primary-foreground">{t("ticket.smartAIMetro")}</span>
                   </div>
                   <Badge variant="secondary" className="text-[10px]">
-                    {bookedTicket.passengers} passenger{bookedTicket.passengers > 1 ? "s" : ""}
+                    {bookedTicket.passengers} {bookedTicket.passengers > 1 ? t("ticket.passengersMultiple") : t("ticket.passenger")}
                   </Badge>
                 </div>
               </div>
@@ -142,29 +144,29 @@ export default function BookTicket() {
                   </div>
                   <div className="flex-1 space-y-3">
                     <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">From</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("ticket.from")}</p>
                       <p className="text-sm font-semibold" data-testid="text-ticket-source">
                         {bookedTicket.sourceName}
                         {bookedTicket.sourcePlatform && (
-                          <span className="ml-2 text-xs font-normal text-muted-foreground">Platform {bookedTicket.sourcePlatform}</span>
+                          <span className="ml-2 text-xs font-normal text-muted-foreground">{t("ticket.platform")} {bookedTicket.sourcePlatform}</span>
                         )}
                       </p>
                     </div>
                     {bookedTicket.hasTransfer && bookedTicket.transferStation && (
                       <div className="p-2 rounded-md bg-chart-4/5 border border-chart-4/15" data-testid="text-ticket-transfer">
-                        <p className="text-[10px] text-chart-4 uppercase tracking-wider font-semibold">Platform Change at</p>
+                        <p className="text-[10px] text-chart-4 uppercase tracking-wider font-semibold">{t("ticket.platformChangeAt")}</p>
                         <p className="text-xs font-semibold mt-0.5">{bookedTicket.transferStation}</p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
-                          Platform {bookedTicket.transferFromPlatform} → Platform {bookedTicket.transferToPlatform}
+                          {t("ticket.platform")} {bookedTicket.transferFromPlatform} → {t("ticket.platform")} {bookedTicket.transferToPlatform}
                         </p>
                       </div>
                     )}
                     <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">To</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("ticket.to")}</p>
                       <p className="text-sm font-semibold" data-testid="text-ticket-dest">
                         {bookedTicket.destName}
                         {bookedTicket.destPlatform && (
-                          <span className="ml-2 text-xs font-normal text-muted-foreground">Platform {bookedTicket.destPlatform}</span>
+                          <span className="ml-2 text-xs font-normal text-muted-foreground">{t("ticket.platform")} {bookedTicket.destPlatform}</span>
                         )}
                       </p>
                     </div>
@@ -178,24 +180,24 @@ export default function BookTicket() {
                       <p className="font-mono text-xs font-semibold mt-0.5">{bookedTicket.id.slice(0, 12)}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total Fare</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("ticket.totalFare")}</p>
                       <p className="font-bold text-primary mt-0.5">
                         {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(bookedTicket.totalFare)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Passengers</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("ticket.passengers")}</p>
                       <p className="text-sm font-semibold mt-0.5">{bookedTicket.passengers}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Status</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("ticket.status")}</p>
                       <Badge variant="default" className="text-[10px] mt-0.5">{bookedTicket.status}</Badge>
                     </div>
                   </div>
                 </div>
 
                 <div className="border-t border-dashed pt-4 flex flex-col items-center gap-3">
-                  <p className="text-xs text-muted-foreground font-medium">Scan QR at Metro Gate</p>
+                  <p className="text-xs text-muted-foreground font-medium">{t("ticket.scanQR")}</p>
                   <div className="p-2 bg-white rounded-lg">
                     <img
                       src={qrDataUrl}
@@ -224,7 +226,7 @@ export default function BookTicket() {
               }}
               data-testid="button-book-another"
             >
-              Book Another
+              {t("ticket.bookAnother")}
             </Button>
             <Button
               className="flex-1"
@@ -238,7 +240,7 @@ export default function BookTicket() {
               data-testid="button-download-qr"
             >
               <DownloadIcon className="w-4 h-4 mr-2" />
-              Save QR
+              {t("ticket.saveQR")}
             </Button>
           </div>
         </div>
@@ -262,15 +264,15 @@ export default function BookTicket() {
         <div className="flex items-center justify-between gap-2">
           <div className="flex flex-col gap-0.5">
             <h1 className="text-xl font-bold tracking-tight" data-testid="text-book-title">
-              Book Metro Ticket
+              {t("bookTicket.title")}
             </h1>
             <p className="text-xs text-muted-foreground">
-              AI-powered dynamic pricing for Bangalore Metro
+              {t("app.poweredBy")}
             </p>
           </div>
           {user && (
             <div className="text-right">
-              <p className="text-[10px] text-muted-foreground">Wallet</p>
+              <p className="text-[10px] text-muted-foreground">{t("common.wallet")}</p>
               <p className="text-sm font-bold text-primary">
                 {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(user.walletBalance)}
               </p>
@@ -283,18 +285,18 @@ export default function BookTicket() {
             <div className="space-y-1.5">
               <Label className="text-xs font-medium flex items-center gap-1.5">
                 <CircleDotIcon className="w-3 h-3 text-chart-2" />
-                From
+                {t("label.from")}
               </Label>
               <Select value={sourceId} onValueChange={setSourceId}>
                 <SelectTrigger data-testid="select-source-station" className="h-11">
-                  <SelectValue placeholder="Select departure station" />
+                  <SelectValue placeholder={t("routePlanner.selectDeparture")} />
                 </SelectTrigger>
                 <SelectContent>
                   {purpleStations.length > 0 && (
                     <>
                       <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full" style={{ backgroundColor: "#7B2D8E" }} />
-                        Purple Line
+                        {t("routePlanner.purpleLine")}
                       </div>
                       {purpleStations.map((s) => (
                         <SelectItem key={s.id} value={String(s.id)} data-testid={`option-source-${s.id}`}>
@@ -307,7 +309,7 @@ export default function BookTicket() {
                     <>
                       <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full" style={{ backgroundColor: "#00A651" }} />
-                        Green Line
+                        {t("routePlanner.greenLine")}
                       </div>
                       {greenStations.map((s) => (
                         <SelectItem key={s.id} value={String(s.id)} data-testid={`option-source-${s.id}`}>
@@ -336,11 +338,11 @@ export default function BookTicket() {
             <div className="space-y-1.5">
               <Label className="text-xs font-medium flex items-center gap-1.5">
                 <MapPinIcon className="w-3 h-3 text-destructive" />
-                To
+                {t("label.to")}
               </Label>
               <Select value={destId} onValueChange={setDestId}>
                 <SelectTrigger data-testid="select-dest-station" className="h-11">
-                  <SelectValue placeholder="Select arrival station" />
+                  <SelectValue placeholder={t("routePlanner.selectArrival")} />
                 </SelectTrigger>
                 <SelectContent>
                   {purpleStations.length > 0 && (
@@ -380,7 +382,7 @@ export default function BookTicket() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <UsersIcon className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Passengers</span>
+                <span className="text-sm font-medium">{t("bookTicket.passengers")}</span>
               </div>
               <div className="flex items-center gap-3">
                 <Button
@@ -414,18 +416,18 @@ export default function BookTicket() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <SparklesIcon className="w-4 h-4 text-primary" />
-                AI Dynamic Pricing
+                {t("app.aiPricing")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between p-4 rounded-lg bg-primary/5 border border-primary/10">
                 <div>
                   <p className="text-xs text-muted-foreground">
-                    {passengers > 1 ? `${passengers} passengers` : "Per person"}
+                    {passengers > 1 ? `${passengers} ${t("bookTicket.passengers")}` : t("bookTicket.perPerson")}
                   </p>
                   {passengers > 1 && (
                     <p className="text-[11px] text-muted-foreground">
-                      {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(pricing.dynamicFare)} each
+                      {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(pricing.dynamicFare)} {t("bookTicket.each")}
                     </p>
                   )}
                 </div>
@@ -437,7 +439,7 @@ export default function BookTicket() {
                     variant={pricing.demandLevel === "high" ? "destructive" : "secondary"}
                     className="text-[10px]"
                   >
-                    {pricing.demandLevel} demand
+                    {pricing.demandLevel} {t("bookTicket.demand")}
                   </Badge>
                 </div>
               </div>
@@ -446,7 +448,7 @@ export default function BookTicket() {
                 <div className="p-2.5 rounded-lg bg-chart-4/5 border border-chart-4/15">
                   <p className="text-xs text-chart-4 flex items-center gap-1.5">
                     <SparklesIcon className="w-3 h-3 flex-shrink-0" />
-                    Surge pricing: {((pricing.multiplier - 1) * 100).toFixed(0)}% increase due to {pricing.demandLevel} demand
+                    {t("bookTicket.surgePricing")}: {((pricing.multiplier - 1) * 100).toFixed(0)}% {t("bookTicket.increaseDueTo")} {pricing.demandLevel} {t("bookTicket.demand")}
                   </p>
                 </div>
               )}
@@ -466,7 +468,7 @@ export default function BookTicket() {
                   onClick={() => setShowPayment(true)}
                   data-testid="button-proceed-payment"
                 >
-                  Proceed to Payment
+                  {t("bookTicket.proceedToPayment")}
                   <ArrowRightIcon className="w-4 h-4 ml-2" />
                 </Button>
               )}
@@ -479,14 +481,14 @@ export default function BookTicket() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <CreditCardIcon className="w-4 h-4" />
-                Payment
+                {t("bookTicket.payment")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { id: "wallet", label: "Wallet", icon: WalletIcon, subtitle: new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(user?.walletBalance ?? 0) },
-                  { id: "upi", label: "UPI", icon: CreditCardIcon, subtitle: "Pay via UPI" },
+                  { id: "wallet", label: t("common.wallet"), icon: WalletIcon, subtitle: new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(user?.walletBalance ?? 0) },
+                  { id: "upi", label: t("bookTicket.upi"), icon: CreditCardIcon, subtitle: `Pay via ${t("bookTicket.upi")}` },
                 ].map((method) => (
                   <Button
                     key={method.id}
@@ -504,9 +506,9 @@ export default function BookTicket() {
 
               {paymentMethod === "upi" && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-medium">UPI ID</Label>
+                  <Label className="text-xs font-medium">{t("bookTicket.upi")} ID</Label>
                   <Input
-                    placeholder="yourname@upi"
+                    placeholder={t("bookTicket.upiPlaceholder")}
                     value={upiId}
                     onChange={(e) => setUpiId(e.target.value)}
                     data-testid="input-upi-id"
@@ -517,13 +519,13 @@ export default function BookTicket() {
               {paymentMethod === "wallet" && user && totalFare > user.walletBalance && (
                 <div className="p-2.5 rounded-lg bg-destructive/5 border border-destructive/15">
                   <p className="text-xs text-destructive">
-                    Insufficient balance. You need {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(totalFare - user.walletBalance)} more.
+                    {t("bookTicket.insufficientBalance")}. You need {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(totalFare - user.walletBalance)} more.
                   </p>
                 </div>
               )}
 
               <div className="p-3 rounded-lg bg-muted/50 flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Total</span>
+                <span className="text-sm text-muted-foreground">{t("bookTicket.total")}</span>
                 <span className="text-lg font-bold text-primary">
                   {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(totalFare)}
                 </span>
@@ -540,11 +542,11 @@ export default function BookTicket() {
                 data-testid="button-confirm-payment"
               >
                 {bookMutation.isPending ? (
-                  "Processing..."
+                  t("bookTicket.processing")
                 ) : (
                   <>
                     <CreditCardIcon className="w-4 h-4 mr-2" />
-                    Pay & Generate Ticket
+                    {t("bookTicket.payAndGenerate")}
                   </>
                 )}
               </Button>

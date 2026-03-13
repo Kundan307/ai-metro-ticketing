@@ -13,6 +13,7 @@ import {
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/components/language-provider";
 
 type ScanResult = {
   valid: boolean;
@@ -76,6 +77,7 @@ const playErrorSound = () => {
 };
 
 export default function ScannerPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -193,18 +195,18 @@ export default function ScannerPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
           <ScanLineIcon className="w-8 h-8 text-primary" />
-          QR Scanner
+          {t("scanner.title")}
         </h1>
-        <p className="text-muted-foreground mt-1">Scan or type a ticket ID to verify passenger access.</p>
+        <p className="text-muted-foreground mt-1">{t("scanner.subtitle")}</p>
       </div>
 
       {/* Camera */}
       <Card className="overflow-hidden">
         <div className="bg-muted px-4 py-3 flex justify-between items-center text-sm border-b">
-          <span className="font-semibold">Camera Scanner</span>
+          <span className="font-semibold">{t("scanner.cameraScanner")}</span>
           <span className="flex items-center gap-1.5">
             <div className={`w-2 h-2 rounded-full ${isScanning ? "bg-green-500 animate-pulse" : "bg-slate-400"}`} />
-            <span className="text-xs text-muted-foreground">{isScanning ? "Scanning…" : "Offline"}</span>
+            <span className="text-xs text-muted-foreground">{isScanning ? t("scanner.scanning") : t("scanner.offline")}</span>
           </span>
         </div>
         <CardContent className="p-0">
@@ -215,16 +217,16 @@ export default function ScannerPage() {
                 <div className="w-20 h-20 rounded-2xl border-2 border-white/30 flex items-center justify-center">
                   <ScanLineIcon className="w-10 h-10 opacity-40" />
                 </div>
-                <p className="text-sm text-white/60">Point camera at a ticket QR code</p>
+                <p className="text-sm text-white/60">{t("scanner.pointCamera")}</p>
                 <Button onClick={startScanner} size="lg" className="w-full max-w-xs">
-                  Start Camera
+                  {t("scanner.startCamera")}
                 </Button>
               </div>
             )}
             {isScanning && scanMutation.isPending && (
               <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-3 text-white">
                 <Loader2Icon className="w-10 h-10 animate-spin" />
-                <p className="text-sm font-medium">Verifying ticket…</p>
+                <p className="text-sm font-medium">{t("scanner.verifying")}</p>
               </div>
             )}
           </div>
@@ -234,20 +236,20 @@ export default function ScannerPage() {
       {/* Manual entry */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Manual Verification</CardTitle>
-          <CardDescription>Enter the first 6+ characters of a Ticket ID.</CardDescription>
+          <CardTitle className="text-base">{t("scanner.manualVerification")}</CardTitle>
+          <CardDescription>{t("scanner.manualDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-2">
             <Input
-              placeholder="e.g. 3f8a2c…"
+              placeholder={t("scanner.placeholder")}
               value={manualTicket}
               onChange={e => setManualTicket(e.target.value)}
               onKeyDown={e => e.key === "Enter" && verifyManual()}
               disabled={scanMutation.isPending}
             />
             <Button onClick={verifyManual} disabled={scanMutation.isPending} className="shrink-0">
-              {scanMutation.isPending ? <Loader2Icon className="w-4 h-4 animate-spin" /> : "Verify"}
+              {scanMutation.isPending ? <Loader2Icon className="w-4 h-4 animate-spin" /> : t("scanner.verify")}
             </Button>
           </div>
         </CardContent>
@@ -267,7 +269,7 @@ export default function ScannerPage() {
                 : isValid
                 ? <CheckCircleIcon className="w-7 h-7 text-green-500" />
                 : <XCircleIcon className="w-7 h-7 text-orange-400" />}
-              {isFraud ? "⚠️ Fraud Alert" : isValid ? "✅ Ticket Valid" : "❌ Invalid Ticket"}
+              {isFraud ? `⚠️ ${t("scanner.fraudAlert")}` : isValid ? `✅ ${t("scanner.ticketValid")}` : `❌ ${t("scanner.invalidTicket")}`}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -276,7 +278,7 @@ export default function ScannerPage() {
               <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 text-center animate-in zoom-in-95 duration-300">
                 <p className="text-primary font-bold text-4xl leading-tight">{remaining}</p>
                 <p className="text-[10px] text-primary/70 uppercase tracking-[0.2em] font-black">
-                  {remaining === 1 ? 'Passenger' : 'Passengers'} Remaining
+                  {remaining === 1 ? t("scanner.passengerRemaining") : t("scanner.passengersRemaining")}
                 </p>
               </div>
             )}
@@ -294,7 +296,7 @@ export default function ScannerPage() {
             {isFraud && lastResult.fraudReason && (
               <div className="flex items-start gap-2 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm">
                 <ShieldAlertIcon className="w-4 h-4 mt-0.5 shrink-0" />
-                <span><strong>Fraud Reason:</strong> {lastResult.fraudReason}</span>
+                <span><strong>{t("scanner.fraudReasonLabel")}:</strong> {lastResult.fraudReason}</span>
               </div>
             )}
 
@@ -303,7 +305,7 @@ export default function ScannerPage() {
               <div className="rounded-lg border bg-background divide-y text-sm overflow-hidden">
                 <div className="flex items-center gap-2 px-4 py-3">
                   <TrainFrontIcon className="w-4 h-4 text-primary shrink-0" />
-                  <span className="text-muted-foreground">Route</span>
+                  <span className="text-muted-foreground">{t("scanner.route")}</span>
                   <span className="ml-auto font-semibold text-right">
                     {lastResult.ticket.sourceName} → {lastResult.ticket.destName}
                   </span>
@@ -313,8 +315,8 @@ export default function ScannerPage() {
                 <div className="px-4 py-3">
                   <div className="flex items-center gap-2 mb-2">
                     <UsersIcon className="w-4 h-4 text-primary shrink-0" />
-                    <span className="text-muted-foreground">Passengers</span>
-                    <span className="ml-auto font-semibold">{lastResult.ticket.passengers} total</span>
+                    <span className="text-muted-foreground">{t("scanner.passengers")}</span>
+                    <span className="ml-auto font-semibold">{lastResult.ticket.passengers} {t("scanner.total")}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2 mt-2">
                     <div>
@@ -323,7 +325,7 @@ export default function ScannerPage() {
                         {Array.from({ length: lastResult.ticket.passengers }).map((_, i) => (
                           <div
                             key={i}
-                            title={i < (lastResult.ticket?.entryCount ?? 0) ? `Passenger ${i + 1} entered` : "Pending"}
+                            title={i < (lastResult.ticket?.entryCount ?? 0) ? `${t("scanner.passengerRemaining")} ${i + 1} ${t("scanner.entry")}` : t("scanner.pending")}
                             className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 ${
                               i < (lastResult.ticket?.entryCount ?? 0)
                                 ? "bg-green-500 border-green-500 text-white"
@@ -341,7 +343,7 @@ export default function ScannerPage() {
                         {Array.from({ length: lastResult.ticket.passengers }).map((_, i) => (
                           <div
                             key={i}
-                            title={i < (lastResult.ticket?.exitCount ?? 0) ? `Passenger ${i + 1} exited` : "Pending"}
+                            title={i < (lastResult.ticket?.exitCount ?? 0) ? `${t("scanner.passengerRemaining")} ${i + 1} ${t("scanner.exit")}` : t("scanner.pending")}
                             className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 ${
                               i < (lastResult.ticket?.exitCount ?? 0)
                                 ? "bg-blue-500 border-blue-500 text-white"
@@ -358,12 +360,12 @@ export default function ScannerPage() {
 
                 <div className="flex items-center gap-2 px-4 py-3">
                   <IndianRupeeIcon className="w-4 h-4 text-primary shrink-0" />
-                  <span className="text-muted-foreground">Fare Paid</span>
+                  <span className="text-muted-foreground">{t("scanner.farePaid")}</span>
                   <span className="ml-auto font-semibold">₹{lastResult.ticket.totalFare.toFixed(2)}</span>
                 </div>
                 <div className="flex items-center gap-2 px-4 py-3">
                   <ScanLineIcon className="w-4 h-4 text-primary shrink-0" />
-                  <span className="text-muted-foreground">Ticket Status</span>
+                  <span className="text-muted-foreground">{t("scanner.ticketStatus")}</span>
                   <span className={`ml-auto font-bold capitalize ${
                     lastResult.ticket.status === "active" ? "text-green-600" :
                     lastResult.ticket.status === "used" ? "text-slate-500" : "text-red-500"
@@ -377,7 +379,7 @@ export default function ScannerPage() {
 
             <Button onClick={startScanner} className="w-full" variant="outline">
               <RefreshCcwIcon className="w-4 h-4 mr-2" />
-              Scan Next Ticket
+              {t("scanner.scanNext")}
             </Button>
           </CardContent>
         </Card>

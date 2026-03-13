@@ -17,9 +17,11 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
+import { useTranslation } from "@/components/language-provider";
 import type { Ticket } from "@shared/schema";
 
 export default function MyTickets() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { refetchUser } = useAuth();
   const queryClient = useQueryClient();
@@ -42,12 +44,12 @@ export default function MyTickets() {
       queryClient.invalidateQueries({ queryKey: ["/api/wallet/transactions"] });
       const desc = data.refunded
         ? `Refund of ${new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(data.refundAmount)} added to wallet.`
-        : "Ticket cancelled successfully.";
-      toast({ title: "Ticket Cancelled", description: desc });
+        : t("mytickets.cancelled");
+      toast({ title: t("mytickets.cancelled"), description: desc });
     },
     onError: (error: Error) => {
       setCancellingId(null);
-      toast({ title: "Cancellation Failed", description: error.message, variant: "destructive" });
+      toast({ title: t("mytickets.cancelFailed"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -59,15 +61,15 @@ export default function MyTickets() {
       <div className="max-w-2xl mx-auto space-y-5">
         <div className="flex items-center justify-between gap-2">
           <div className="flex flex-col gap-0.5">
-            <h1 className="text-xl font-bold tracking-tight" data-testid="text-mytickets-title">My Tickets</h1>
+            <h1 className="text-xl font-bold tracking-tight" data-testid="text-mytickets-title">{t("mytickets.title")}</h1>
             <p className="text-xs text-muted-foreground">
-              {tickets?.length ? `${activeTickets.length} active, ${pastTickets.length} past` : "View your booking history"}
+              {tickets?.length ? `${activeTickets.length} ${t("mytickets.active")}, ${pastTickets.length} ${t("mytickets.past")}` : t("mytickets.viewHistory")}
             </p>
           </div>
           <Link href="/">
             <Button variant="default" size="sm" data-testid="link-book-new">
               <TicketIcon className="w-3.5 h-3.5 mr-1.5" />
-              Book New
+              {t("mytickets.bookNew")}
             </Button>
           </Link>
         </div>
@@ -82,11 +84,11 @@ export default function MyTickets() {
           <Card>
             <CardContent className="py-12 text-center">
               <TicketIcon className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-sm font-medium text-muted-foreground" data-testid="text-no-tickets">No tickets booked yet</p>
-              <p className="text-xs text-muted-foreground mt-1">Book your first metro ticket to get started</p>
+              <p className="text-sm font-medium text-muted-foreground" data-testid="text-no-tickets">{t("mytickets.noTickets")}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t("mytickets.bookFirst")}</p>
               <Link href="/">
                 <Button variant="default" size="sm" className="mt-4" data-testid="link-book-first">
-                  Book a Ticket
+                  {t("mytickets.bookATicket")}
                 </Button>
               </Link>
             </CardContent>
@@ -95,7 +97,7 @@ export default function MyTickets() {
           <>
             {activeTickets.length > 0 && (
               <div className="space-y-2">
-                <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Active Tickets</h2>
+                <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("mytickets.activeTickets")}</h2>
                 <div className="space-y-3">
                   {activeTickets.map((ticket) => (
                     <TicketCard
@@ -111,7 +113,7 @@ export default function MyTickets() {
 
             {pastTickets.length > 0 && (
               <div className="space-y-2">
-                <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Past Tickets</h2>
+                <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("mytickets.pastTickets")}</h2>
                 <div className="space-y-3">
                   {pastTickets.map((ticket) => (
                     <TicketCard key={ticket.id} ticket={ticket} />
@@ -135,6 +137,7 @@ function TicketCard({
   onCancel?: (id: string) => void;
   isCancelling?: boolean;
 }) {
+  const { t } = useTranslation();
   const statusColor = ticket.status === "active"
     ? "bg-chart-2"
     : ticket.status === "cancelled"
@@ -154,7 +157,7 @@ function TicketCard({
                     <CircleDotIcon className="w-3 h-3 text-chart-2 flex-shrink-0" />
                     <span className="font-semibold truncate">{ticket.sourceName}</span>
                     {ticket.sourcePlatform && (
-                      <span className="text-[10px] text-muted-foreground">P{ticket.sourcePlatform}</span>
+                      <span className="text-[10px] text-muted-foreground">{t("ticket.platform")} {ticket.sourcePlatform}</span>
                     )}
                   </div>
                   <span className="text-muted-foreground text-xs">→</span>
@@ -162,7 +165,7 @@ function TicketCard({
                     <MapPinIcon className="w-3 h-3 text-destructive flex-shrink-0" />
                     <span className="font-semibold truncate">{ticket.destName}</span>
                     {ticket.destPlatform && (
-                      <span className="text-[10px] text-muted-foreground">P{ticket.destPlatform}</span>
+                      <span className="text-[10px] text-muted-foreground">{t("ticket.platform")} {ticket.destPlatform}</span>
                     )}
                   </div>
                 </div>
@@ -170,7 +173,7 @@ function TicketCard({
                   <div className="flex items-center gap-1.5 text-[11px]" data-testid={`text-transfer-${ticket.id}`}>
                     <ArrowUpDownIcon className="w-3 h-3 text-chart-4 flex-shrink-0" />
                     <span className="text-chart-4 font-medium">
-                      Platform change at {ticket.transferStation} (P{ticket.transferFromPlatform} → P{ticket.transferToPlatform})
+                      {t("ticket.platformChangeAt")} {ticket.transferStation} ({t("ticket.platform")} {ticket.transferFromPlatform} → {t("ticket.platform")} {ticket.transferToPlatform})
                     </span>
                   </div>
                 )}
@@ -188,7 +191,7 @@ function TicketCard({
                   {ticket.passengers > 1 && (
                     <span className="flex items-center gap-0.5">
                       <UsersIcon className="w-3 h-3" />
-                      {ticket.passengers} passengers
+                      {ticket.passengers} {ticket.passengers > 1 ? t("ticket.passengersMultiple") : t("ticket.passenger")}
                     </span>
                   )}
                 </div>
@@ -219,24 +222,24 @@ function TicketCard({
                   {isCancelling ? (
                     <>
                       <Loader2Icon className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                      Cancelling...
+                      {t("mytickets.cancelling")}
                     </>
                   ) : (
                     <>
                       <XCircleIcon className="w-3.5 h-3.5 mr-1.5" />
-                      Cancel Ticket
+                      {t("mytickets.cancelBtn")}
                     </>
                   )}
                 </Button>
                 {ticket.paymentMethod === "wallet" && (
-                  <span className="text-[10px] text-muted-foreground ml-2">Full refund to wallet</span>
+                  <span className="text-[10px] text-muted-foreground ml-2">{t("mytickets.fullRefund")}</span>
                 )}
               </div>
             )}
 
             {ticket.status === "cancelled" && ticket.paymentMethod === "wallet" && (
               <div className="mt-2">
-                <span className="text-[10px] text-muted-foreground">Refund processed to wallet</span>
+                <span className="text-[10px] text-muted-foreground">{t("mytickets.refundProcessed")}</span>
               </div>
             )}
           </div>
