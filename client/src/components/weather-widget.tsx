@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CloudIcon, SunIcon, CloudRainIcon, CloudLightningIcon, Loader2Icon } from "lucide-react";
+import { CloudIcon, SunIcon, CloudRainIcon, CloudLightningIcon, Loader2Icon, MapPinIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 interface WeatherData {
@@ -67,7 +67,11 @@ export function WeatherWidget() {
       title={`Bangalore Weather: ${desc}`}
     >
       <Icon className={`w-4 h-4 ${data.weatherCode === 0 && data.isDay ? "text-amber-500" : "text-sky-500"}`} />
-      <span>{data.temperature}°C</span>
+      <div className="flex items-center gap-1.5 border-l pl-2 ml-1">
+        <MapPinIcon className="w-3 h-3 text-muted-foreground" />
+        <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">Bangalore</span>
+      </div>
+      <span className="font-bold ml-1">{data.temperature}°C</span>
     </div>
   );
 }

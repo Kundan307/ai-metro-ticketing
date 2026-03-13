@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import {
@@ -39,6 +40,7 @@ export default function AuthPage() {
     email: "",
     phone: "",
     password: "",
+    acceptedPrivacy: false,
   });
 
   const loginMutation = useMutation({
@@ -74,6 +76,15 @@ export default function AuthPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.acceptedPrivacy) {
+      toast({
+        title: "Privacy Policy",
+        description: "Please accept the privacy policy to continue",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (isLogin) {
       loginMutation.mutate();
     } else {
@@ -269,6 +280,27 @@ export default function AuthPage() {
                 >
                   {showPassword ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
                 </button>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-2 pt-1">
+              <Checkbox 
+                id="privacy" 
+                checked={form.acceptedPrivacy}
+                onCheckedChange={(checked) => setForm({ ...form, acceptedPrivacy: checked === true })}
+                data-testid="checkbox-privacy"
+              />
+              <div className="grid gap-1.5 leading-none">
+                <label
+                  htmlFor="privacy"
+                  className="text-[11px] font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-muted-foreground"
+                >
+                  I agree to the{" "}
+                  <button type="button" className="text-primary hover:underline font-semibold">
+                    Privacy Policy
+                  </button>{" "}
+                  and terms of service
+                </label>
               </div>
             </div>
 
