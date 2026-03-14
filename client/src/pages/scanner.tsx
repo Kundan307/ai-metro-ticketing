@@ -206,7 +206,7 @@ export default function ScannerPage() {
       </div>
 
       {/* Mode Selector */}
-      <Card className="glass-card border-0">
+      <Card>
         <CardContent className="p-3">
           <div className="flex flex-col sm:flex-row items-center gap-3 justify-between">
             <span className="text-sm font-semibold flex items-center gap-2">
@@ -236,7 +236,7 @@ export default function ScannerPage() {
       </Card>
 
       {/* Camera */}
-      <Card className="glass-card border-0 overflow-hidden">
+      <Card className="overflow-hidden">
         <div className="bg-muted px-4 py-3 flex justify-between items-center text-sm border-b">
           <span className="font-semibold">{t("scanner.cameraScanner")}</span>
           <span className="flex items-center gap-1.5">
@@ -269,7 +269,7 @@ export default function ScannerPage() {
       </Card>
 
       {/* Manual entry */}
-      <Card className="glass-card border-0">
+      <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">{t("scanner.manualVerification")}</CardTitle>
           <CardDescription>{t("scanner.manualDescription")}</CardDescription>
@@ -292,10 +292,10 @@ export default function ScannerPage() {
 
       {/* Result */}
       {lastResult && (
-        <Card className={`glass-card transition-all duration-500 ${
-          isFraud ? "border-destructive/50 shadow-[0_0_20px_rgba(255,0,0,0.3)] bg-destructive/10" :
-          isValid ? "border-green-500/50 shadow-[0_0_20px_rgba(0,255,100,0.3)] bg-green-500/10" :
-          "border-orange-400/50 shadow-[0_0_20px_rgba(255,165,0,0.3)] bg-orange-400/10"
+        <Card className={`border-2 transition-all shadow-lg ${
+          isFraud ? "border-red-500 bg-red-500/5" :
+          isValid ? "border-green-500 bg-green-500/5" :
+          "border-orange-400 bg-orange-400/5"
         }`}>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-xl">

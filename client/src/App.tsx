@@ -1,9 +1,7 @@
-import { useEffect } from "react";
 import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
-import { useToast } from "@/hooks/use-toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -12,11 +10,11 @@ import { AuthProvider, useAuth } from "@/lib/auth";
 import { LanguageProvider, useTranslation } from "@/components/language-provider";
 import { type Language, languageNames } from "@/lib/translations";
 import { Button } from "@/components/ui/button";
-import { SunIcon, MoonIcon, Loader2Icon, WalletIcon, TrainFrontIcon, GlobeIcon, BellIcon } from "lucide-react";
+import { SunIcon, MoonIcon, Loader2Icon, WalletIcon, TrainFrontIcon, GlobeIcon } from "lucide-react";
 import { AIChatbot } from "@/components/ai-chatbot";
+import { VoiceAssistant } from "@/components/voice-assistant";
 import { WeatherWidget } from "@/components/weather-widget";
 import { Link } from "wouter";
-import { io } from "socket.io-client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -78,6 +76,7 @@ function Router() {
   const { user } = useAuth();
   return (
     <Switch>
+      {/* Admin/Scanner: redirect root to admin dashboard */}
       {(user?.role === "admin" || user?.role === "scanner") ? (
         <Route path="/" component={() => <Redirect to="/admin" />} />
       ) : (
@@ -125,34 +124,10 @@ function HeaderBar() {
 }
 
 function AppLayout() {
-  const { toast } = useToast();
   const style = {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "3rem",
   };
-
-  useEffect(() => {
-    const socket = io();
-
-    socket.on("crowdUpdate", (data: any) => {
-      if (data.newLevel === "high") {
-        toast({
-          title: `High Crowd Alert: ${data.stationName}`,
-          description: `Current passenger count: ${data.passengerCount}. Expect delays.`,
-          variant: "destructive",
-        });
-      } else if (data.oldLevel === "high" && data.newLevel !== "high") {
-        toast({
-          title: `Crowd Clearing: ${data.stationName}`,
-          description: `Station congestion has reduced to ${data.newLevel} levels.`,
-        });
-      }
-    });
-
-    return () => {
-      socket.disconnect();
-    };
-  }, [toast]);
 
   return (
     <SidebarProvider style={style as React.CSSProperties}>
@@ -166,6 +141,7 @@ function AppLayout() {
         </div>
       </div>
       <AIChatbot />
+      <VoiceAssistant />
     </SidebarProvider>
   );
 }

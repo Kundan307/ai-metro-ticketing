@@ -55,7 +55,7 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
-        <Card className="glass-card border-0 bg-primary/10 hover:shadow-glow-primary transition-all duration-300 hover:-translate-y-1">
+        <Card className="bg-primary/5 border-primary/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{t("admin.totalBookings")}</CardTitle>
             <ClockIcon className="h-4 w-4 text-primary" />
@@ -65,7 +65,7 @@ export default function AdminDashboard() {
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">{t("admin.totalPassengersBooked")}</p>
           </CardContent>
         </Card>
-        <Card className="glass-card border-0 bg-green-500/10 hover:shadow-[0_0_15px_rgba(34,197,94,0.4)] transition-all duration-300 hover:-translate-y-1">
+        <Card className="bg-green-500/5 border-green-500/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-green-600">{t("admin.activeInMetro")}</CardTitle>
             <UserCheckIcon className="h-4 w-4 text-green-500" />
@@ -75,7 +75,7 @@ export default function AdminDashboard() {
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">{t("admin.passengersInside")}</p>
           </CardContent>
         </Card>
-        <Card className="glass-card border-0 bg-blue-500/10 hover:shadow-[0_0_15px_rgba(59,130,246,0.4)] transition-all duration-300 hover:-translate-y-1">
+        <Card className="bg-blue-500/5 border-blue-500/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-blue-600">{t("admin.tripsCompleted")}</CardTitle>
             <CheckCircleIcon className="h-4 w-4 text-blue-500" />
@@ -85,7 +85,7 @@ export default function AdminDashboard() {
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">{t("admin.tripsFullyCompleted")}</p>
           </CardContent>
         </Card>
-        <Card className="glass-card border-0 bg-destructive/10 hover:shadow-[0_0_15px_rgba(239,68,68,0.4)] transition-all duration-300 hover:-translate-y-1">
+        <Card className="bg-destructive/5 border-destructive/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-destructive">{t("admin.fraudAlerts")}</CardTitle>
             <AlertTriangleIcon className="h-4 w-4 text-destructive" />
@@ -97,7 +97,7 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      <Card className="glass-card border-0">
+      <Card>
         <CardHeader>
           <CardTitle>{t("admin.recentScanActivity")}</CardTitle>
           <CardDescription>{t("admin.realTimeFeed")}</CardDescription>
@@ -136,7 +136,7 @@ export default function AdminDashboard() {
         </CardContent>
       </Card>
 
-      <Card className="glass-card border-0">
+      <Card>
         <CardHeader>
           <CardTitle>{t("admin.registeredUsers")} ({usersData?.length || 0})</CardTitle>
           <CardDescription>{t("admin.viewPassengersStaff")}</CardDescription>

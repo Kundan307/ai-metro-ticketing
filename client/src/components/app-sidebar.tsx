@@ -67,39 +67,39 @@ export function AppSidebar() {
     .slice(0, 2) ?? "U";
 
   return (
-    <Sidebar className="border-r border-white/5 bg-background/80 backdrop-blur-xl">
-      <SidebarHeader className="p-6 pb-4">
+    <Sidebar>
+      <SidebarHeader className="p-4 pb-2">
         <Link href="/" data-testid="link-home-logo">
-          <div className="flex items-center gap-3 active:scale-95 transition-transform group">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-premium-gradient shadow-glow-primary group-hover:shadow-glow-accent transition-all duration-500">
-              <TrainFrontIcon className="w-5 h-5 text-white" />
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary">
+              <TrainFrontIcon className="w-5 h-5 text-primary-foreground" />
             </div>
             <div className="flex flex-col">
-              <span className="text-md font-black tracking-tight leading-none text-foreground group-hover:text-primary transition-colors">{t("app.title")}</span>
-              <span className="text-[10px] text-primary/80 font-bold uppercase tracking-widest mt-1.5">{t("app.subtitle")}</span>
+              <span className="text-sm font-bold tracking-tight">{t("app.title")}</span>
+              <span className="text-[10px] text-muted-foreground font-medium">{t("app.subtitle")}</span>
             </div>
           </div>
         </Link>
       </SidebarHeader>
-      <SidebarContent className="px-3">
+      <SidebarContent>
         {user && user.role === "user" && (
-          <div className="px-2 py-4">
+          <div className="px-3 py-2">
             <Link href="/wallet">
-              <div className="p-4 rounded-2xl glass-card transition-all hover:bg-white/5 hover:border-primary/30 hover:-translate-y-1 hover:shadow-glow-primary active:scale-[0.98] group cursor-pointer" data-testid="card-sidebar-profile">
+              <div className="p-3 rounded-lg bg-primary/5 border border-primary/10 transition-colors" data-testid="card-sidebar-profile">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-premium-gradient flex items-center justify-center flex-shrink-0 shadow-glow-primary group-hover:shadow-glow-accent transition-all duration-300">
-                    <span className="text-xs font-black text-white">{initials}</span>
+                  <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                    <span className="text-xs font-bold text-primary-foreground">{initials}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold truncate text-foreground group-hover:text-primary transition-colors" data-testid="text-user-name">{user.name}</p>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <WalletIcon className="w-3.5 h-3.5 text-accent" />
-                      <span className="text-xs font-black text-accent drop-shadow-[0_0_5px_rgba(255,255,255,0.3)]" data-testid="text-sidebar-balance">
+                    <p className="text-sm font-semibold truncate" data-testid="text-user-name">{user.name}</p>
+                    <div className="flex items-center gap-1">
+                      <WalletIcon className="w-3 h-3 text-primary" />
+                      <span className="text-xs font-semibold text-primary" data-testid="text-sidebar-balance">
                         {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(user.walletBalance)}
                       </span>
                     </div>
                   </div>
-                  <ChevronRightIcon className="w-4 h-4 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
+                  <ChevronRightIcon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                 </div>
               </div>
             </Link>
@@ -140,9 +140,9 @@ export function AppSidebar() {
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild data-active={location === "/admin"}>
                     <Link href="/admin">
-                      <a data-testid="link-nav-admin" className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all hover:bg-white/5 hover:text-primary data-[active=true]:bg-primary/20 data-[active=true]:text-primary data-[active=true]:shadow-glow-primary">
-                        <ShieldCheckIcon className="w-5 h-5" />
-                        <span className="font-semibold">{t("sidebar.adminDashboard")}</span>
+                      <a data-testid="link-nav-admin" className="flex items-center gap-2">
+                        <ShieldCheckIcon className="w-4 h-4" />
+                        <span>{t("sidebar.adminDashboard")}</span>
                       </a>
                     </Link>
                   </SidebarMenuButton>
@@ -163,9 +163,9 @@ export function AppSidebar() {
                       data-active={location === item.url}
                     >
                       <Link href={item.url}>
-                        <a data-testid={`link-nav-${item.titleKey}`} className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all hover:bg-white/5 hover:text-primary data-[active=true]:bg-primary/20 data-[active=true]:text-primary data-[active=true]:shadow-glow-primary">
-                           <item.icon className="w-5 h-5" />
-                           <span className="font-semibold">{t(item.titleKey)}</span>
+                        <a data-testid={`link-nav-${item.titleKey}`} className="flex items-center gap-2">
+                           <item.icon className="w-4 h-4" />
+                           <span>{t(item.titleKey)}</span>
                         </a>
                       </Link>
                     </SidebarMenuButton>
