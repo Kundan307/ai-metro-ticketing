@@ -8,6 +8,7 @@ import {
   ActivityIcon,
   AlertTriangleIcon,
   ShieldCheckIcon,
+  FilterIcon,
 } from "lucide-react";
 import {
   BarChart,
@@ -19,16 +20,33 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import type { Station } from "@shared/schema";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useState } from "react";
+import type { Station, Ticket } from "@shared/schema";
 import { getCrowdColor } from "@/lib/metro-data";
 import { useTranslation } from "@/components/language-provider";
 
 export default function CrowdMonitor() {
   const { t } = useTranslation();
-  const { data: stations, isLoading } = useQuery<Station[]>({
+  const [filter, setFilter] = useState<"all" | "booked">("all");
+
+  const { data: stations, isLoading: stationsLoading } = useQuery<Station[]>({
     queryKey: ["/api/stations"],
     refetchInterval: 10000,
   });
+
+  const { data: tickets, isLoading: ticketsLoading } = useQuery<Ticket[]>({
+    queryKey: ["/api/tickets/my"],
+    enabled: filter === "booked",
+  });
+
+  const isLoading = stationsLoading || (filter === "booked" && ticketsLoading);
 
   if (isLoading) {
     return (
@@ -43,26 +61,53 @@ export default function CrowdMonitor() {
     );
   }
 
+  const activeTickets = tickets?.filter(t => t.status === 'active') ?? [];
+  const bookedStationIds = new Set<number>();
+  activeTickets.forEach(t => {
+    bookedStationIds.add(t.sourceStationId);
+    bookedStationIds.add(t.destStationId);
+  });
+
+  const filteredStations = stations?.filter(s => {
+    if (filter === "all") return true;
+    return bookedStationIds.has(s.id);
+  }) ?? [];
+
   const lowCount = stations?.filter((s) => s.crowdLevel === "low").length ?? 0;
   const medCount = stations?.filter((s) => s.crowdLevel === "medium").length ?? 0;
   const highCount = stations?.filter((s) => s.crowdLevel === "high").length ?? 0;
   const totalPassengers = stations?.reduce((sum, s) => sum + s.passengerCount, 0) ?? 0;
 
-  const topStations = stations
-    ? [...stations].sort((a, b) => b.passengerCount - a.passengerCount).slice(0, 10)
+  const topStations = filteredStations
+    ? [...filteredStations].sort((a, b) => b.passengerCount - a.passengerCount).slice(0, 10)
     : [];
 
-  const crowdedStations = stations?.filter((s) => s.crowdLevel === "high") ?? [];
+  const crowdedStations = filteredStations?.filter((s) => s.crowdLevel === "high") ?? [];
 
   return (
     <div className="p-4 md:p-6 overflow-y-auto h-full space-y-5">
-      <div className="flex flex-col gap-0.5">
-        <h1 className="text-xl font-bold tracking-tight" data-testid="text-crowd-title">
-          {t("crowd.title")}
-        </h1>
-        <p className="text-xs text-muted-foreground">
-          {t("crowd.subtitle")}
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col gap-0.5">
+          <h1 className="text-xl font-bold tracking-tight" data-testid="text-crowd-title">
+            {t("crowd.title")}
+          </h1>
+          <p className="text-xs text-muted-foreground">
+            {t("crowd.subtitle")}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <FilterIcon className="w-4 h-4 text-muted-foreground" />
+          <Select value={filter} onValueChange={(v: any) => setFilter(v)}>
+            <SelectTrigger className="w-[180px] h-9 text-xs">
+              <SelectValue placeholder="Filter stations" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Stations</SelectItem>
+              <SelectItem value="booked">My Booked Stations</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -211,11 +256,13 @@ export default function CrowdMonitor() {
 
       <Card data-testid="card-all-stations-crowd">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold">{t("crowd.allStations")}</CardTitle>
+          <CardTitle className="text-sm font-semibold">
+            {filter === "all" ? t("crowd.allStations") : "Booked Stations"} ({filteredStations.length})
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
-            {stations?.sort((a, b) => b.passengerCount - a.passengerCount).map((station) => (
+            {filteredStations?.sort((a, b) => b.passengerCount - a.passengerCount).map((station) => (
               <div
                 key={station.id}
                 className="flex items-center justify-between gap-2 p-2 rounded-lg bg-muted/30"

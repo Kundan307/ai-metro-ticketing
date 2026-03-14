@@ -4,10 +4,19 @@ import crypto from "crypto";
 
 export async function seedDatabase() {
   const existingCount = await storage.getStationCount();
-  if (existingCount > 0) {
-    console.log(`Database already has ${existingCount} stations, skipping seed.`);
-  } else {
-    console.log("Seeding database with Bangalore Metro stations...");
+  
+  // Force re-seed to get full station list if counts mismatch (old count was ~50, new is 69)
+  if (existingCount > 0 && existingCount !== 69) {
+    console.log(`Station count mismatch (${existingCount} vs 69). Re-seeding...`);
+    await storage.deleteAllTickets();
+    await storage.deleteAllTransactions();
+    await storage.deleteAllStations();
+  } else if (existingCount === 69) {
+    console.log("Database already has all 69 stations, skipping seed.");
+    return;
+  }
+
+  console.log("Seeding database with Bangalore Metro stations...");
 
     for (const station of PURPLE_LINE_STATIONS) {
       const crowdLevels = ["low", "medium", "high"];
@@ -52,7 +61,6 @@ export async function seedDatabase() {
     }
 
     console.log("Seeded stations:", PURPLE_LINE_STATIONS.length + GREEN_LINE_STATIONS.length);
-  }
 
   const demoEmail = "demo@bmrcl.com";
   const existingDemo = await storage.getUserByEmail(demoEmail);
@@ -92,48 +100,51 @@ export async function seedDatabase() {
     });
   }
 
-  if (!existingDemo && demoUser) {
+  if (demoUser) {
     const initialBalance = 2875;
     await storage.updateWalletBalance(demoUser.id, initialBalance);
-    await storage.createWalletTransaction(demoUser.id, initialBalance, "credit", "Welcome bonus + demo credits");
+    await storage.createWalletTransaction(demoUser.id, initialBalance, "credit", "Demo credits");
 
-    const allStations = await storage.getAllStations();
-    if (allStations.length >= 10) {
-      const pairs = [
-        { src: 0, dest: 5 },
-        { src: 2, dest: 9 },
-        { src: 10, dest: 15 },
-      ];
-      for (const p of pairs) {
-        const src = allStations[p.src];
-        const dest = allStations[p.dest];
-        const baseFare = Math.max(10, Math.abs(src.orderIndex - dest.orderIndex) * 5);
-        const dynamicFare = Math.round(baseFare * 1.1);
-        const passengers = Math.floor(Math.random() * 3) + 1;
-        await storage.createTicket({
-          userId: demoUser.id,
-          sourceStationId: src.id,
-          destStationId: dest.id,
-          sourceName: src.name,
-          destName: dest.name,
-          passengers,
-          baseFare,
-          dynamicFare,
-          totalFare: dynamicFare * passengers,
-          pricingMultiplier: 1.1,
-          demandLevel: "medium",
-          paymentMethod: "wallet",
-          status: "active",
-          qrData: null,
-          isFraudulent: false,
-          fraudReason: null,
-          scannedAt: null,
-        });
+    const userTickets = await storage.getUserTickets(demoUser.id);
+    if (userTickets.length === 0) {
+      console.log("Creating active tickets for demo user...");
+      const allStations = await storage.getAllStations();
+      if (allStations.length >= 15) {
+        const pairs = [
+          { src: 0, dest: 5 },
+          { src: 2, dest: 9 },
+          { src: 10, dest: 15 },
+        ];
+        for (const p of pairs) {
+          const src = allStations[p.src];
+          const dest = allStations[p.dest];
+          const baseFare = Math.max(10, Math.abs(src.orderIndex - dest.orderIndex) * 5);
+          const multiplier = 1.1;
+          const dynamicFare = Math.round(baseFare * multiplier);
+          const passengers = Math.floor(Math.random() * 3) + 1;
+          await storage.createTicket({
+            userId: demoUser.id,
+            sourceStationId: src.id,
+            destStationId: dest.id,
+            sourceName: src.name,
+            destName: dest.name,
+            passengers,
+            baseFare,
+            dynamicFare,
+            totalFare: dynamicFare * passengers,
+            pricingMultiplier: multiplier,
+            demandLevel: "medium",
+            paymentMethod: "wallet",
+            status: "active",
+            qrData: null,
+            isFraudulent: false,
+            fraudReason: null,
+            scannedAt: null,
+          });
+        }
       }
-      await storage.createWalletTransaction(demoUser.id, -165, "debit", `Ticket: ${allStations[0].name} → ${allStations[5].name}`);
-      await storage.createWalletTransaction(demoUser.id, -210, "debit", `Ticket: ${allStations[2].name} → ${allStations[9].name}`);
     }
-    console.log("Demo user created: demo@bmrcl.com / demo123");
+    console.log("Demo user environment ready");
   }
 
   console.log("Database ready!");

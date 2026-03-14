@@ -149,8 +149,38 @@ function AppLayout() {
       }
     });
 
+    // Simulate "Get Down" notification for active tickets
+    const notificationInterval = setInterval(async () => {
+      try {
+        const res = await fetch("/api/tickets/my");
+        if (res.ok) {
+          const tickets = await res.json();
+          const activeTicket = tickets.find((t: any) => t.status === "active" && t.entryCount > 0 && t.exitCount === 0);
+          if (activeTicket) {
+             // Logic: If current time is some minutes after booking, simulate arrival
+             const bookingTime = new Date(activeTicket.createdAt).getTime();
+             const now = new Date().getTime();
+             const diffMinutes = (now - bookingTime) / (1000 * 60);
+             
+             // In a real app, this would be triggered by GPS or real train position
+             // For demo, we trigger it if the ticket is 1-2 minutes old
+             if (diffMinutes > 1 && diffMinutes < 1.2) {
+               toast({
+                 title: "Station Approaching!",
+                 description: `You are arriving at ${activeTicket.destName} shortly. Please prepare to get down.`,
+                 duration: 10000,
+               });
+             }
+          }
+        }
+      } catch (err) {
+        // Silently fail if not logged in or network error
+      }
+    }, 15000);
+
     return () => {
       socket.disconnect();
+      clearInterval(notificationInterval);
     };
   }, [toast]);
 

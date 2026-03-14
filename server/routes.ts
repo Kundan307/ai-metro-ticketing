@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import session from "express-session";
 import { storage } from "./storage";
-import { registerSchema, loginSchema, bookTicketSchema, topUpSchema, scanTicketSchema, updateProfileSchema } from "@shared/schema";
+import { registerSchema, loginSchema, bookTicketSchema, topUpSchema, withdrawSchema, scanTicketSchema, updateProfileSchema, MAX_WALLET_BALANCE } from "@shared/schema";
 import QRCode from "qrcode";
 import crypto from "crypto";
 import memorystore from "memorystore";
@@ -51,11 +51,9 @@ function getDemandLevel(hour: number, crowdLevel: string): string {
 }
 
 function getPricingMultiplier(demandLevel: string): number {
-  switch (demandLevel) {
-    case "high": return 1.20;
-    case "medium": return 1.10;
-    default: return 1.00;
-  }
+  if (demandLevel === "high") return 1.20;
+  if (demandLevel === "medium") return 1.10;
+  return 1.00;
 }
 
 function getRecommendation(demandLevel: string): string {
@@ -238,6 +236,11 @@ export async function registerRoutes(
     try {
       const parsed = topUpSchema.parse(req.body);
       const user = await storage.getUserById(req.session.userId!);
+      
+      if (user!.walletBalance + parsed.amount > MAX_WALLET_BALANCE) {
+        return res.status(400).json({ message: `Adding ₹${parsed.amount} would exceed the maximum balance of ₹${MAX_WALLET_BALANCE}` });
+      }
+      
       const newBalance = user!.walletBalance + parsed.amount;
       await storage.updateWalletBalance(user!.id, newBalance);
       await storage.createWalletTransaction(user!.id, parsed.amount, "credit", `Wallet top-up`);
@@ -247,12 +250,152 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/wallet/withdraw", requireAuth, async (req, res) => {
+    try {
+      const parsed = withdrawSchema.parse(req.body);
+      const user = await storage.getUserById(req.session.userId!);
+      
+      if (user!.walletBalance < parsed.amount) {
+        return res.status(400).json({ message: "Insufficient balance for withdrawal" });
+      }
+      
+      const newBalance = user!.walletBalance - parsed.amount;
+      await storage.updateWalletBalance(user!.id, newBalance);
+      await storage.createWalletTransaction(user!.id, parsed.amount, "debit", `Wallet withdrawal`);
+      res.json({ balance: newBalance });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Withdrawal failed" });
+    }
+  });
+
   app.get("/api/wallet/transactions", requireAuth, async (req, res) => {
     res.json(await storage.getWalletTransactions(req.session.userId!));
   });
 
   // ── Ticketing Routes ──
   app.get("/api/stations", async (_req, res) => { res.json(await storage.getAllStations()); });
+
+  app.get("/api/pricing", async (req, res) => {
+    try {
+      const { sourceId, destId } = req.query;
+      if (!sourceId || !destId) return res.status(400).json({ message: "Source and Destination required" });
+      
+      const source = await storage.getStation(parseInt(sourceId as string));
+      const dest = await storage.getStation(parseInt(destId as string));
+      if (!source || !dest) return res.status(404).json({ message: "Station not found" });
+
+      const hour = new Date().getHours();
+      const demandLevel = getDemandLevel(hour, dest.crowdLevel);
+      const multiplier = getPricingMultiplier(demandLevel);
+      const baseFare = calculateBaseFare(source.orderIndex, dest.orderIndex);
+      const dynamicFare = Math.round(baseFare * multiplier);
+
+      res.json({
+        baseFare,
+        dynamicFare,
+        multiplier,
+        demandLevel,
+        recommendation: getRecommendation(demandLevel)
+      });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Pricing calculation failed" });
+    }
+  });
+
+  app.get("/api/route", async (req, res) => {
+    try {
+      const { sourceId, destId } = req.query;
+      if (!sourceId || !destId) return res.status(400).json({ message: "Source and Destination required" });
+
+      const allStations = await storage.getAllStations();
+      const source = allStations.find(s => s.id === parseInt(sourceId as string));
+      const dest = allStations.find(s => s.id === parseInt(destId as string));
+      if (!source || !dest) return res.status(404).json({ message: "Station not found" });
+
+      const routes: any[] = [];
+
+      if (source.line === dest.line) {
+        // Same line — direct route
+        const lineStations = allStations.filter(s => s.line === source.line).sort((a, b) => a.orderIndex - b.orderIndex);
+        const srcIdx = lineStations.findIndex(s => s.id === source.id);
+        const dstIdx = lineStations.findIndex(s => s.id === dest.id);
+        const start = Math.min(srcIdx, dstIdx);
+        const end = Math.max(srcIdx, dstIdx);
+        const stopsSlice = lineStations.slice(start, end + 1);
+        if (srcIdx > dstIdx) stopsSlice.reverse();
+
+        const platform = source.line === "purple" ? 1 : 2;
+        routes.push({
+          type: "fastest",
+          label: "Direct Route",
+          description: `Stay on the ${source.line === "purple" ? "Purple" : "Green"} Line`,
+          stations: stopsSlice.map((s, i) => ({
+            id: s.id, name: s.name, line: s.line, crowdLevel: s.crowdLevel,
+            isTransfer: false, platform,
+          })),
+          travelTimeMinutes: stopsSlice.length * 2,
+          transfers: 0,
+          transferStation: null,
+          estimatedFare: calculateBaseFare(source.orderIndex, dest.orderIndex),
+          stationCount: stopsSlice.length,
+        });
+      } else {
+        // Cross-line — transfer at Majestic
+        const majesticPurple = allStations.find(s => s.name === "Kempegowda Majestic" && s.line === "purple");
+        const majesticGreen = allStations.find(s => s.name === "Kempegowda Majestic" && s.line === "green");
+
+        if (majesticPurple && majesticGreen) {
+          const srcLine = allStations.filter(s => s.line === source.line).sort((a, b) => a.orderIndex - b.orderIndex);
+          const dstLine = allStations.filter(s => s.line === dest.line).sort((a, b) => a.orderIndex - b.orderIndex);
+
+          const majesticOnSrcLine = srcLine.find(s => s.name === "Kempegowda Majestic");
+          const majesticOnDstLine = dstLine.find(s => s.name === "Kempegowda Majestic");
+
+          if (majesticOnSrcLine && majesticOnDstLine) {
+            const srcIdx = srcLine.findIndex(s => s.id === source.id);
+            const majSrcIdx = srcLine.findIndex(s => s.id === majesticOnSrcLine.id);
+            const majDstIdx = dstLine.findIndex(s => s.id === majesticOnDstLine.id);
+            const dstIdx = dstLine.findIndex(s => s.id === dest.id);
+
+            let leg1 = srcLine.slice(Math.min(srcIdx, majSrcIdx), Math.max(srcIdx, majSrcIdx) + 1);
+            if (srcIdx > majSrcIdx) leg1.reverse();
+
+            let leg2 = dstLine.slice(Math.min(majDstIdx, dstIdx), Math.max(majDstIdx, dstIdx) + 1);
+            if (majDstIdx > dstIdx) leg2.reverse();
+
+            const srcPlatform = source.line === "purple" ? 1 : 2;
+            const dstPlatform = dest.line === "purple" ? 1 : 2;
+
+            const stationsForRoute = [
+              ...leg1.map(s => ({ id: s.id, name: s.name, line: s.line, crowdLevel: s.crowdLevel, isTransfer: s.name === "Kempegowda Majestic", platform: srcPlatform })),
+              ...leg2.slice(1).map(s => ({ id: s.id, name: s.name, line: s.line, crowdLevel: s.crowdLevel, isTransfer: false, platform: dstPlatform })),
+            ];
+
+            routes.push({
+              type: "fastest",
+              label: "Fastest Route (via Majestic)",
+              description: `Transfer at Kempegowda Majestic from ${source.line === "purple" ? "Purple" : "Green"} to ${dest.line === "purple" ? "Purple" : "Green"} Line`,
+              stations: stationsForRoute,
+              travelTimeMinutes: stationsForRoute.length * 2 + 5,
+              transfers: 1,
+              transferStation: "Kempegowda Majestic",
+              transferPlatforms: { from: srcPlatform, to: dstPlatform },
+              estimatedFare: calculateBaseFare(source.orderIndex, dest.orderIndex) + 5,
+              stationCount: stationsForRoute.length,
+            });
+          }
+        }
+      }
+
+      res.json({
+        source: { id: source.id, name: source.name, line: source.line },
+        destination: { id: dest.id, name: dest.name, line: dest.line },
+        routes,
+      });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Route calculation failed" });
+    }
+  });
 
   app.post("/api/tickets", requireAuth, async (req, res) => {
     try {
@@ -300,6 +443,52 @@ export async function registerRoutes(
 
   app.get("/api/tickets/my", requireAuth, async (req, res) => { res.json(await storage.getUserTickets(req.session.userId!)); });
 
+  app.post("/api/tickets/:id/cancel", requireAuth, async (req, res) => {
+    try {
+      const ticketId = String(req.params.id);
+      const ticket = await storage.getTicket(ticketId);
+      if (!ticket) return res.status(404).json({ message: "Ticket not found" });
+      if (ticket.userId !== req.session.userId) return res.status(403).json({ message: "Not your ticket" });
+      if (ticket.status !== "active") return res.status(400).json({ message: "Ticket is not active" });
+
+      const cancelled = await storage.cancelTicketIfActive(ticketId);
+      if (!cancelled) return res.status(400).json({ message: "Could not cancel ticket" });
+
+      let refunded = false;
+      let refundAmount = 0;
+      if (ticket.paymentMethod === "wallet") {
+        refundAmount = ticket.totalFare;
+        const user = await storage.getUserById(req.session.userId!);
+        if (user) {
+          await storage.updateWalletBalance(user.id, user.walletBalance + refundAmount);
+          await storage.createWalletTransaction(user.id, refundAmount, "credit", `Refund for cancelled ticket ${ticketId.slice(0, 8)}`);
+          refunded = true;
+        }
+      }
+
+      const updatedTicket = await storage.getTicket(ticketId);
+      res.json({ ticket: updatedTicket, refunded, refundAmount });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Cancellation failed" });
+    }
+  });
+
+  app.get("/api/tickets/:id/detail", requireAuth, async (req, res) => {
+    try {
+      const ticketId = String(req.params.id);
+      const ticket = await storage.getTicket(ticketId);
+      if (!ticket) return res.status(404).json({ message: "Ticket not found" });
+
+      let qrDataUrl: string | null = null;
+      if (ticket.qrData) {
+        qrDataUrl = await QRCode.toDataURL(ticket.qrData);
+      }
+      res.json({ ticket, qrDataUrl });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to get ticket details" });
+    }
+  });
+
   app.post("/api/scan", requireScanner, async (req, res) => {
     try {
       const parsed = scanTicketSchema.parse(req.body);
@@ -331,10 +520,47 @@ export async function registerRoutes(
   // ── Insights ──
   app.get("/api/insights", async (_req, res) => {
     const allStations = await storage.getAllStations();
+    const hour = new Date().getHours();
+
+    // Generate demand predictions from real station data
+    const demandPredictions = allStations.slice(0, 10).map((s) => {
+      const nextLevels = ["low", "medium", "high"];
+      const predictedIdx = Math.min(nextLevels.indexOf(s.crowdLevel) + (hour >= 8 && hour <= 10 ? 1 : 0), 2);
+      return {
+        station: s.name,
+        currentLevel: s.crowdLevel,
+        predictedLevel: nextLevels[predictedIdx],
+        confidence: 65 + Math.floor(Math.random() * 25),
+      };
+    });
+
     const recommendations = [
-      { type: "timing", title: "Best Travel Window", description: "Travel between 11 AM - 2 PM for lowest fares.", impact: "Save 20%" },
+      { type: "timing", title: "Best Travel Window", description: "Travel between 11 AM - 2 PM for lowest fares and least crowding.", impact: "Save 20%" },
+      { type: "route", title: "Avoid Majestic Transfer", description: "If transferring lines, board 2 stations before Majestic to get a seat.", impact: "Comfort" },
+      { type: "pricing", title: "Weekend Savings", description: "Weekend fares are always at base rate — no surge pricing applied.", impact: "Save 10-20%" },
     ];
-    res.json({ recommendations, stations: allStations.slice(0, 5) });
+
+    const highCrowdCount = allStations.filter((s) => s.crowdLevel === "high").length;
+    const medCrowdCount = allStations.filter((s) => s.crowdLevel === "medium").length;
+    const avgMultiplier = 1 + (highCrowdCount * 0.2 + medCrowdCount * 0.1) / Math.max(allStations.length, 1);
+
+    const pricingInsights = {
+      avgMultiplier: parseFloat(avgMultiplier.toFixed(2)),
+      peakHours: ["8:00 AM – 10:00 AM", "5:00 PM – 7:00 PM"],
+      revenueLift: parseFloat(((avgMultiplier - 1) * 100).toFixed(1)),
+    };
+
+    const anomalies: { type: string; description: string; severity: string; timestamp: string }[] = [];
+    allStations.filter((s) => s.passengerCount > 700).forEach((s) => {
+      anomalies.push({
+        type: "crowd_spike",
+        description: `Unusually high crowd at ${s.name} (${s.passengerCount} passengers)`,
+        severity: "high",
+        timestamp: new Date().toISOString(),
+      });
+    });
+
+    res.json({ demandPredictions, recommendations, anomalies, pricingInsights });
   });
 
   return httpServer;

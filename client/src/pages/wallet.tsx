@@ -16,8 +16,10 @@ import {
   ArrowDownLeftIcon,
   IndianRupeeIcon,
   TrendingUpIcon,
+  ArrowRightIcon,
 } from "lucide-react";
 import type { WalletTransaction } from "@shared/schema";
+import { MAX_WALLET_BALANCE } from "@shared/schema";
 
 export default function Wallet() {
   const { t } = useTranslation();
@@ -25,6 +27,7 @@ export default function Wallet() {
   const { user, refetchUser } = useAuth();
   const queryClient = useQueryClient();
   const [topUpAmount, setTopUpAmount] = useState("");
+  const [withdrawAmount, setWithdrawAmount] = useState("");
 
   const { data: transactions, isLoading } = useQuery<WalletTransaction[]>({
     queryKey: ["/api/wallet/transactions"],
@@ -45,6 +48,24 @@ export default function Wallet() {
     },
     onError: (error: Error) => {
       toast({ title: t("wallet.topUpFailed"), description: error.message, variant: "destructive" });
+    },
+  });
+
+  const withdrawMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/wallet/withdraw", {
+        amount: parseFloat(withdrawAmount),
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      setWithdrawAmount("");
+      refetchUser();
+      queryClient.invalidateQueries({ queryKey: ["/api/wallet/transactions"] });
+      toast({ title: "Withdrawal Successful", description: `Withdrawn from wallet: ₹${withdrawAmount}` });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Withdrawal Failed", description: error.message, variant: "destructive" });
     },
   });
 
@@ -96,50 +117,92 @@ export default function Wallet() {
           </Card>
         </div>
 
-        <Card data-testid="card-topup" className="glass-card border-0 hover:shadow-glow-primary transition-all duration-300 mb-2">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <PlusIcon className="w-4 h-4" />
-              {t("wallet.addMoney")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-4 gap-2">
-              {quickAmounts.map((amt) => (
-                <Button
-                  key={amt}
-                  variant={topUpAmount === String(amt) ? "default" : "outline"}
-                  onClick={() => setTopUpAmount(String(amt))}
-                  className="text-sm"
-                  data-testid={`button-quick-${amt}`}
-                >
-                  <IndianRupeeIcon className="w-3 h-3 mr-0.5" />
-                  {amt}
-                </Button>
-              ))}
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium">{t("wallet.customAmount")}</Label>
-              <Input
-                type="number"
-                placeholder={t("wallet.enterAmount")}
-                value={topUpAmount}
-                onChange={(e) => setTopUpAmount(e.target.value)}
-                min={50}
-                max={10000}
-                data-testid="input-topup-amount"
-              />
-            </div>
-            <Button
-              className="w-full"
-              onClick={() => topUpMutation.mutate()}
-              disabled={topUpMutation.isPending || !topUpAmount || parseFloat(topUpAmount) < 50}
-              data-testid="button-topup-submit"
-            >
-              {topUpMutation.isPending ? t("bookTicket.processing") : t("wallet.addMoneyBtn")}
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
+          <Card data-testid="card-topup" className="glass-card border-0 hover:shadow-glow-primary transition-all duration-300">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <PlusIcon className="w-4 h-4" />
+                  {t("wallet.addMoney")}
+                </div>
+                <span className="text-[10px] text-muted-foreground font-normal">
+                  Limit: ₹{MAX_WALLET_BALANCE.toLocaleString()}
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-4 gap-2">
+                {quickAmounts.map((amt) => (
+                  <Button
+                    key={amt}
+                    variant={topUpAmount === String(amt) ? "default" : "outline"}
+                    onClick={() => setTopUpAmount(String(amt))}
+                    className="text-xs h-8 px-0"
+                    data-testid={`button-quick-${amt}`}
+                  >
+                    ₹{amt}
+                  </Button>
+                ))}
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-medium">{t("wallet.customAmount")}</Label>
+                <Input
+                  type="number"
+                  placeholder={t("wallet.enterAmount")}
+                  value={topUpAmount}
+                  onChange={(e) => setTopUpAmount(e.target.value)}
+                  min={50}
+                  max={MAX_WALLET_BALANCE}
+                  className="h-9 text-sm"
+                  data-testid="input-topup-amount"
+                />
+              </div>
+              <Button
+                className="w-full h-9 text-xs"
+                onClick={() => topUpMutation.mutate()}
+                disabled={topUpMutation.isPending || !topUpAmount || parseFloat(topUpAmount) < 50}
+                data-testid="button-topup-submit"
+              >
+                {topUpMutation.isPending ? t("bookTicket.processing") : t("wallet.addMoneyBtn")}
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card data-testid="card-withdraw" className="glass-card border-0 hover:shadow-glow-accent transition-all duration-300">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <ArrowUpRightIcon className="w-4 h-4 text-destructive" />
+                Withdraw Money
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-medium">Withdrawal Amount</Label>
+                <Input
+                  type="number"
+                  placeholder="Enter amount to withdraw"
+                  value={withdrawAmount}
+                  onChange={(e) => setWithdrawAmount(e.target.value)}
+                  min={50}
+                  className="h-9 text-sm"
+                  data-testid="input-withdraw-amount"
+                />
+              </div>
+              <Button
+                variant="outline"
+                className="w-full h-9 text-xs border-destructive/20 hover:bg-destructive/5 hover:text-destructive transition-colors"
+                onClick={() => withdrawMutation.mutate()}
+                disabled={withdrawMutation.isPending || !withdrawAmount || parseFloat(withdrawAmount) < 50}
+                data-testid="button-withdraw-submit"
+              >
+                {withdrawMutation.isPending ? "Processing..." : "Withdraw to Bank"}
+              </Button>
+              <p className="text-[10px] text-center text-muted-foreground">
+                Funds will be credited to your linked accounts instantly.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
 
         <Card data-testid="card-transactions" className="glass-card border-0 hover:shadow-glow-primary transition-all duration-300">
           <CardHeader className="pb-3">

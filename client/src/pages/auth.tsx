@@ -199,6 +199,14 @@ export default function AuthPage() {
         {/* Subtle background decoration for the right side */}
         <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
         <div className="absolute bottom-[-10%] left-[-10%] w-[30%] h-[30%] bg-secondary/5 blur-[100px] rounded-full pointer-events-none" />
+        
+        {/* Added background texture for empty feel */}
+        <div className="absolute inset-0 opacity-[0.05] pointer-events-none z-0" style={{
+          backgroundImage: 'url("/metro-patterns.png")',
+          backgroundSize: '400px',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'repeat',
+        }} />
 
         <div className="w-full max-w-[400px] my-auto animate-fade-in-up">
           <div className="text-center mb-8 lg:hidden">

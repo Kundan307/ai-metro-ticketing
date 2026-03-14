@@ -65,7 +65,7 @@ export default function MetroMap() {
       if (mapInstanceRef.current) return;
 
       const map = L.map(mapRef.current!, {
-        center: [12.9716, 77.5946],
+        center: [12.9767, 77.5713], // Centralized on Majestic (Interchange)
         zoom: 12,
         zoomControl: true,
       });
@@ -80,12 +80,12 @@ export default function MetroMap() {
 
       if (purpleStations.length > 1) {
         L.polyline(purpleStations.map((s): [number, number] => [s.lat, s.lng]), {
-          color: "#7B2D8E", weight: 4, opacity: 0.8,
+          color: "#7B2D8E", weight: 5, opacity: 0.8,
         }).addTo(map);
       }
       if (greenStations.length > 1) {
         L.polyline(greenStations.map((s): [number, number] => [s.lat, s.lng]), {
-          color: "#00A651", weight: 4, opacity: 0.8,
+          color: "#00A651", weight: 5, opacity: 0.8,
         }).addTo(map);
       }
 
@@ -105,7 +105,7 @@ export default function MetroMap() {
         leafletRef.current = null;
       }
     };
-  }, []);
+  }, [stations]); // Add stations to dependency array since polylines depend on them
 
   useEffect(() => {
     if (!mapInstanceRef.current || !leafletRef.current || !stations?.length) return;
@@ -116,18 +116,20 @@ export default function MetroMap() {
     const greenSorted = stations.filter((s) => s.line === "green").sort((a, b) => a.orderIndex - b.orderIndex);
 
     if (trainStateRef.current.length === 0) {
-      const purpleTerminusForward = purpleSorted[purpleSorted.length - 1]?.name ?? "Kengeri";
-      const purpleTerminusBackward = purpleSorted[0]?.name ?? "Baiyappanahalli";
+      const purpleTerminusForward = purpleSorted[purpleSorted.length - 1]?.name ?? "Challaghatta";
+      const purpleTerminusBackward = purpleSorted[0]?.name ?? "Whitefield";
       const greenTerminusForward = greenSorted[greenSorted.length - 1]?.name ?? "Silk Institute";
-      const greenTerminusBackward = greenSorted[0]?.name ?? "Nagasandra";
+      const greenTerminusBackward = greenSorted[0]?.name ?? "Madavara";
 
       trainStateRef.current = [
-        { id: "p1", line: "purple", positionIndex: 2, direction: 1, terminus: purpleTerminusForward },
-        { id: "p2", line: "purple", positionIndex: Math.floor(purpleSorted.length * 0.5), direction: -1, terminus: purpleTerminusBackward },
-        { id: "p3", line: "purple", positionIndex: Math.floor(purpleSorted.length * 0.8), direction: -1, terminus: purpleTerminusBackward },
-        { id: "g1", line: "green", positionIndex: 3, direction: 1, terminus: greenTerminusForward },
-        { id: "g2", line: "green", positionIndex: Math.floor(greenSorted.length * 0.45), direction: -1, terminus: greenTerminusBackward },
-        { id: "g3", line: "green", positionIndex: Math.floor(greenSorted.length * 0.75), direction: 1, terminus: greenTerminusForward },
+        { id: "p1", line: "purple", positionIndex: 5, direction: 1, terminus: purpleTerminusForward },
+        { id: "p2", line: "purple", positionIndex: Math.floor(purpleSorted.length * 0.3), direction: -1, terminus: purpleTerminusBackward },
+        { id: "p3", line: "purple", positionIndex: Math.floor(purpleSorted.length * 0.6), direction: 1, terminus: purpleTerminusForward },
+        { id: "p4", line: "purple", positionIndex: Math.floor(purpleSorted.length * 0.8), direction: -1, terminus: purpleTerminusBackward },
+        { id: "g1", line: "green", positionIndex: 4, direction: 1, terminus: greenTerminusForward },
+        { id: "g2", line: "green", positionIndex: Math.floor(greenSorted.length * 0.35), direction: -1, terminus: greenTerminusBackward },
+        { id: "g3", line: "green", positionIndex: Math.floor(greenSorted.length * 0.65), direction: 1, terminus: greenTerminusForward },
+        { id: "g4", line: "green", positionIndex: Math.floor(greenSorted.length * 0.85), direction: -1, terminus: greenTerminusBackward },
       ];
     }
 

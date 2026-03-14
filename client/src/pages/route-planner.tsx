@@ -82,6 +82,13 @@ export default function RoutePlanner() {
 
   const { data: routeData, isLoading: routeLoading } = useQuery<RouteResponse>({
     queryKey: ["/api/route", sourceId, destId],
+    queryFn: async () => {
+      const res = await fetch(`/api/route?sourceId=${sourceId}&destId=${destId}`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch route");
+      return res.json();
+    },
     enabled: !!sourceId && !!destId && sourceId !== destId,
   });
 

@@ -99,7 +99,7 @@ export default function AIInsights() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Current Surge</p>
-                <p className="text-xl font-bold">{insights?.pricingInsights.avgMultiplier.toFixed(2) ?? "1.00"}x</p>
+                <p className="text-xl font-bold">{insights?.pricingInsights?.avgMultiplier?.toFixed(2) ?? "1.00"}x</p>
                 <p className="text-[10px] text-muted-foreground">Average across network</p>
               </div>
             </div>
@@ -113,7 +113,7 @@ export default function AIInsights() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Tips Available</p>
-                <p className="text-xl font-bold">{insights?.recommendations.length ?? 0}</p>
+                <p className="text-xl font-bold">{insights?.recommendations?.length ?? 0}</p>
                 <p className="text-[10px] text-muted-foreground">Personalized for you</p>
               </div>
             </div>
@@ -228,7 +228,7 @@ export default function AIInsights() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2 mb-3">
-            {(insights?.pricingInsights.peakHours ?? []).map((hour, i) => (
+            {(insights?.pricingInsights?.peakHours ?? []).map((hour, i) => (
               <Badge key={i} variant="secondary" className="text-xs">
                 {hour}
               </Badge>

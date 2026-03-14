@@ -52,6 +52,9 @@ export interface IStorage {
   createScanLog(log: InsertScanLog): Promise<ScanLog>;
   getRecentScans(limit: number): Promise<ScanLog[]>;
   getScanCountForTicket(ticketId: string): Promise<number>;
+  deleteAllStations(): Promise<void>;
+  deleteAllTickets(): Promise<void>;
+  deleteAllTransactions(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -217,6 +220,18 @@ export class DatabaseStorage implements IStorage {
       .from(scanLogs)
       .where(eq(scanLogs.ticketId, ticketId));
     return result.count;
+  }
+
+  async deleteAllStations(): Promise<void> {
+    await db.delete(stations);
+  }
+
+  async deleteAllTickets(): Promise<void> {
+    await db.delete(tickets);
+  }
+
+  async deleteAllTransactions(): Promise<void> {
+    await db.delete(walletTransactions);
   }
 }
 

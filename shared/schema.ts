@@ -102,8 +102,14 @@ export const bookTicketSchema = z.object({
   upiId: z.string().optional(),
 });
 
+export const MAX_WALLET_BALANCE = 10000;
+
 export const topUpSchema = z.object({
-  amount: z.number().min(50, "Minimum top-up is 50").max(10000, "Maximum top-up is 10,000"),
+  amount: z.number().min(50, "Minimum top-up is 50").max(MAX_WALLET_BALANCE, `Maximum top-up is ${MAX_WALLET_BALANCE}`),
+});
+
+export const withdrawSchema = z.object({
+  amount: z.number().min(50, "Minimum withdrawal is 50"),
 });
 
 export const updateProfileSchema = z.object({

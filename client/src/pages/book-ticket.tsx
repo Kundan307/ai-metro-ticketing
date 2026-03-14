@@ -31,6 +31,7 @@ import {
   MapPinIcon,
   CircleDotIcon,
   DownloadIcon,
+  TrendingUpIcon,
 } from "lucide-react";
 import type { Station, Ticket } from "@shared/schema";
 
@@ -60,6 +61,13 @@ export default function BookTicket() {
     recommendation: string;
   }>({
     queryKey: ["/api/pricing", sourceId, destId],
+    queryFn: async () => {
+      const res = await fetch(`/api/pricing?sourceId=${sourceId}&destId=${destId}`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch pricing");
+      return res.json();
+    },
     enabled: !!sourceId && !!destId && sourceId !== destId,
   });
 
@@ -431,21 +439,39 @@ export default function BookTicket() {
                   <p className="text-2xl font-bold text-primary" data-testid="text-total-fare">
                     {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(totalFare)}
                   </p>
-                  <Badge
-                    variant={pricing.demandLevel === "high" ? "destructive" : "secondary"}
-                    className="text-[10px]"
-                  >
-                    {pricing.demandLevel} {t("bookTicket.demand")}
-                  </Badge>
+                  <div className="flex items-center justify-end gap-1.5 mt-0.5">
+                    <Badge
+                      variant={pricing.demandLevel === "high" ? "destructive" : pricing.demandLevel === "medium" ? "default" : "secondary"}
+                      className="text-[9px] h-4"
+                    >
+                      {pricing.demandLevel.toUpperCase()} {t("bookTicket.demand")}
+                    </Badge>
+                  </div>
                 </div>
               </div>
 
-              {pricing.multiplier > 1 && (
-                <div className="p-2.5 rounded-lg bg-chart-4/5 border border-chart-4/15">
-                  <p className="text-xs text-chart-4 flex items-center gap-1.5">
-                    <SparklesIcon className="w-3 h-3 flex-shrink-0" />
-                    {t("bookTicket.surgePricing")}: {((pricing.multiplier - 1) * 100).toFixed(0)}% {t("bookTicket.increaseDueTo")} {pricing.demandLevel} {t("bookTicket.demand")}
-                  </p>
+              {pricing.multiplier > 1 ? (
+                <div className="p-3 rounded-lg bg-primary/5 border border-primary/10 space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-muted-foreground">Original Fare ({passengers} {passengers > 1 ? "passengers" : "passenger"})</span>
+                    <span className="font-semibold">{new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(pricing.baseFare * passengers)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs text-primary">
+                    <span className="flex items-center gap-1">
+                      <TrendingUpIcon className="w-3 h-3" />
+                      Crowd Surge ({((pricing.multiplier - 1) * 100).toFixed(0)}%)
+                    </span>
+                    <span className="font-bold">+{new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(totalFare - (pricing.baseFare * passengers))}</span>
+                  </div>
+                  <div className="pt-2 border-t border-primary/10 flex justify-between items-center text-sm font-bold">
+                    <span>Total Fare</span>
+                    <span className="text-primary">{new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(totalFare)}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 rounded-lg bg-chart-2/5 border border-chart-2/10 flex items-center gap-2">
+                  <CheckCircleIcon className="w-4 h-4 text-chart-2" />
+                  <span className="text-xs text-chart-2 font-medium">Standard Pricing - Low Crowd Detected</span>
                 </div>
               )}
 
