@@ -84,6 +84,11 @@ export default {
         "pulse-glow": {
           "0%, 100%": { opacity: "0.5", transform: "scale(1)" },
           "50%": { opacity: "0.8", transform: "scale(1.05)" },
+        },
+        "mesh-move": {
+          "0%, 100%": { transform: "translate(0, 0) scale(1)" },
+          "33%": { transform: "translate(30px, -50px) scale(1.1)" },
+          "66%": { transform: "translate(-20px, 20px) scale(0.9)" },
         }
       },
       animation: {
@@ -91,6 +96,8 @@ export default {
         "fade-in": "fade-in 0.4s ease-out forwards",
         "scale-in": "scale-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards",
         "pulse-glow": "pulse-glow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+        "mesh-slow": "mesh-move 20s ease-in-out infinite",
+        "mesh-medium": "mesh-move 15s ease-in-out infinite reverse",
       },
     },
   },
