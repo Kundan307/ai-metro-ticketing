@@ -63,8 +63,9 @@ export default function Wallet() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Card className="bg-primary text-primary-foreground" data-testid="card-wallet-balance">
-            <CardContent className="p-5">
+          <Card className="glass-card relative overflow-hidden text-white border-0 hover:shadow-glow-primary transition-all duration-300 hover:-translate-y-1" data-testid="card-wallet-balance">
+            <div className="absolute inset-0 bg-premium-gradient opacity-90" />
+            <CardContent className="p-5 relative z-10">
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
                   <p className="text-xs opacity-70">{t("wallet.availableBalance")}</p>
@@ -78,7 +79,7 @@ export default function Wallet() {
               </div>
             </CardContent>
           </Card>
-          <Card data-testid="card-total-spent">
+          <Card data-testid="card-total-spent" className="glass-card border-0 hover:shadow-glow-accent transition-all duration-300 hover:-translate-y-1">
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
@@ -95,7 +96,7 @@ export default function Wallet() {
           </Card>
         </div>
 
-        <Card data-testid="card-topup">
+        <Card data-testid="card-topup" className="glass-card border-0 hover:shadow-glow-primary transition-all duration-300 mb-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <PlusIcon className="w-4 h-4" />
@@ -140,7 +141,7 @@ export default function Wallet() {
           </CardContent>
         </Card>
 
-        <Card data-testid="card-transactions">
+        <Card data-testid="card-transactions" className="glass-card border-0 hover:shadow-glow-primary transition-all duration-300">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold">{t("wallet.history")}</CardTitle>
           </CardHeader>

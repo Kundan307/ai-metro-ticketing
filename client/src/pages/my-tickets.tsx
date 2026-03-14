@@ -94,7 +94,7 @@ export default function MyTickets() {
             ))}
           </div>
         ) : !tickets?.length ? (
-          <Card>
+          <Card className="glass-card border-0">
             <CardContent className="py-12 text-center">
               <TicketIcon className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
               <p className="text-sm font-medium text-muted-foreground" data-testid="text-no-tickets">{t("mytickets.noTickets")}</p>
@@ -169,7 +169,7 @@ function TicketCard({
   return (
     <Card
       data-testid={`card-ticket-${ticket.id}`}
-      className="overflow-hidden cursor-pointer hover:border-primary/40 transition-colors"
+      className="glass-card border-0 overflow-hidden cursor-pointer hover:shadow-glow-primary transition-all duration-300 hover:-translate-y-1"
       onClick={() => onSelect?.(ticket.id)}
     >
       <CardContent className="p-0">
