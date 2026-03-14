@@ -1,4 +1,5 @@
 import { storage } from "./storage";
+import { io } from "./index";
 
 export function startCrowdSimulator() {
   console.log("Starting crowd simulator (updates every 15 seconds)...");
@@ -20,6 +21,16 @@ export function startCrowdSimulator() {
         if (newCount < 200) crowdLevel = "low";
         else if (newCount < 500) crowdLevel = "medium";
         else crowdLevel = "high";
+
+        if (station.crowdLevel !== crowdLevel) {
+          io.emit("crowdUpdate", {
+            stationId: station.id,
+            stationName: station.name,
+            oldLevel: station.crowdLevel,
+            newLevel: crowdLevel,
+            passengerCount: newCount,
+          });
+        }
 
         await storage.updateStationCrowd(station.id, crowdLevel, newCount);
       }

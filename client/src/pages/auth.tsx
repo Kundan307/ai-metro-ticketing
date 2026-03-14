@@ -113,21 +113,33 @@ export default function AuthPage() {
   return (
     <div className="flex h-screen w-full overflow-hidden">
       <div className="hidden lg:flex lg:w-[480px] xl:w-[540px] flex-shrink-0 relative overflow-hidden">
+        {/* Modern Mesh Gradient Background */}
         <div
-          className="absolute inset-0"
+          className="absolute inset-0 z-0"
           style={{
-            background: "linear-gradient(135deg, #7B2D8E 0%, #5B1D6E 40%, #2A1040 70%, #1a0a2e 100%)",
+            background: `
+              radial-gradient(circle at 0% 0%, hsl(280, 50%, 45%) 0%, transparent 50%),
+              radial-gradient(circle at 100% 0%, hsl(150, 60%, 35%) 0%, transparent 50%),
+              radial-gradient(circle at 100% 100%, hsl(280, 60%, 30%) 0%, transparent 50%),
+              radial-gradient(circle at 0% 100%, hsl(150, 50%, 25%) 0%, transparent 50%),
+              hsl(224, 71%, 4%)
+            `,
           }}
         />
+        
+        {/* Animated Orbs */}
+        <div className="absolute top-[20%] left-[10%] w-64 h-64 rounded-full bg-primary/20 blur-[80px] animate-pulse" />
+        <div className="absolute bottom-[20%] right-[10%] w-48 h-48 rounded-full bg-secondary/10 blur-[60px] animate-pulse" style={{ animationDelay: '1s' }} />
+
         <div
-          className="absolute inset-0 opacity-[0.07]"
+          className="absolute inset-0 opacity-[0.05] z-1"
           style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0 L60 30 L30 60 L0 30Z' fill='none' stroke='white' stroke-width='0.5'/%3E%3C/svg%3E")`,
-            backgroundSize: "60px 60px",
+            backgroundSize: "80px 80px",
           }}
         />
-        <div className="absolute bottom-0 left-0 right-0 h-32 opacity-20" style={{
-          background: "linear-gradient(to top, #00A651, transparent)",
+        <div className="absolute bottom-0 left-0 right-0 h-48 opacity-20 z-1" style={{
+          background: "linear-gradient(to top, hsl(var(--secondary)), transparent)",
         }} />
 
         <div className="relative z-10 flex flex-col justify-between w-full p-10 xl:p-12">
@@ -183,8 +195,12 @@ export default function AuthPage() {
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-5 sm:p-8 overflow-y-auto bg-background">
-        <div className="w-full max-w-[380px] my-auto">
+      <div className="flex-1 flex items-center justify-center p-5 sm:p-8 overflow-y-auto bg-background/50 backdrop-blur-sm relative">
+        {/* Subtle background decoration for the right side */}
+        <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[30%] h-[30%] bg-secondary/5 blur-[100px] rounded-full pointer-events-none" />
+
+        <div className="w-full max-w-[400px] my-auto animate-fade-in-up">
           <div className="text-center mb-8 lg:hidden">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary mb-4">
               <TrainFrontIcon className="w-7 h-7 text-primary-foreground" />
@@ -306,7 +322,7 @@ export default function AuthPage() {
 
             <Button
               type="submit"
-              className="w-full h-11 text-sm font-semibold gap-2"
+              className="w-full h-12 text-sm font-semibold gap-2 shadow-lg shadow-primary/20 hover:shadow-primary/30 active:scale-[0.98] transition-all"
               disabled={isPending}
               data-testid="button-auth-submit"
             >
@@ -339,20 +355,22 @@ export default function AuthPage() {
             <div className="mt-4 space-y-2">
               <button
                 type="button"
-                className="w-full flex items-center gap-3 p-3.5 rounded-xl border border-border bg-card cursor-pointer text-left group transition-colors"
+                className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border/50 bg-card/50 backdrop-blur-md cursor-pointer text-left group transition-all hover:bg-card hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 active:scale-[0.99]"
                 onClick={() => fillDemo("user")}
                 data-testid="button-fill-demo"
               >
-                <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-chart-4/10 flex-shrink-0">
-                  <ZapIcon className="w-4 h-4 text-chart-4" />
+                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 flex-shrink-0 group-hover:scale-110 transition-transform">
+                  <ZapIcon className="w-5 h-5 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <span className="text-sm font-semibold block">Use Demo Account</span>
+                  <span className="text-sm font-bold block group-hover:text-primary transition-colors">Quick Access Demo</span>
                   <span className="text-[11px] text-muted-foreground block mt-0.5">
-                    Pre-loaded with ₹2,500 balance & sample tickets
+                    Pre-loaded with ₹2,500 balance & tickets
                   </span>
                 </div>
-                <ArrowRightIcon className="w-4 h-4 text-muted-foreground/40 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1">
+                   <ArrowRightIcon className="w-4 h-4 text-primary" />
+                </div>
               </button>
               
               <div className="mt-2">

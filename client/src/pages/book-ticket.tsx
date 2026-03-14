@@ -105,107 +105,98 @@ export default function BookTicket() {
     return (
       <div className="p-4 md:p-6 overflow-y-auto h-full">
         <div className="max-w-md mx-auto space-y-6 py-4">
-          <div className="text-center space-y-3">
-            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-chart-2/10 mx-auto">
-              <CheckCircleIcon className="w-8 h-8 text-chart-2" />
+          <div className="text-center space-y-4 animate-scale-in">
+            <div className="flex items-center justify-center w-20 h-20 rounded-full bg-secondary/10 mx-auto shadow-inner">
+              <CheckCircleIcon className="w-10 h-10 text-secondary" />
             </div>
             <div>
-              <h2 className="text-xl font-bold" data-testid="text-booking-success">{t("ticket.booked")}</h2>
-              <p className="text-sm text-muted-foreground">{t("ticket.showQR")}</p>
+              <h2 className="text-2xl font-bold tracking-tight" data-testid="text-booking-success">
+                {t("ticket.booked")}
+              </h2>
+              <p className="text-sm text-muted-foreground/80 mt-1">{t("ticket.showQR")}</p>
             </div>
           </div>
 
-          <Card data-testid="card-ticket-details" className="overflow-hidden">
+          <Card data-testid="card-ticket-details" className="overflow-hidden border-0 shadow-2xl shadow-primary/10">
             <CardContent className="p-0">
-              <div className="bg-primary px-5 py-4">
-                <div className="flex items-center justify-between gap-1">
-                  <div className="flex items-center gap-2">
-                    <TrainFrontIcon className="w-5 h-5 text-primary-foreground" />
-                    <span className="text-sm font-bold text-primary-foreground">{t("ticket.smartAIMetro")}</span>
+              <div className="bg-primary px-6 py-6 relative overflow-hidden">
+                {/* Decorative Pattern */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl" />
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-secondary/10 rounded-full -ml-12 -mb-12 blur-xl" />
+                
+                <div className="flex items-center justify-between gap-1 relative z-10">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/10">
+                      <TrainFrontIcon className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <span className="text-md font-bold text-white block leading-none">{t("ticket.smartAIMetro")}</span>
+                      <span className="text-[10px] text-white/60 uppercase tracking-widest mt-1 block">Bangalore Metro</span>
+                    </div>
                   </div>
-                  <Badge variant="secondary" className="text-[10px]">
+                  <Badge variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur-md px-3 py-1 text-[11px] font-bold">
                     {bookedTicket.passengers} {bookedTicket.passengers > 1 ? t("ticket.passengersMultiple") : t("ticket.passenger")}
                   </Badge>
                 </div>
               </div>
 
-              <div className="px-5 py-5 space-y-5">
-                <div className="flex items-start gap-3">
-                  <div className="flex flex-col items-center gap-0.5 pt-0.5">
-                    <CircleDotIcon className="w-4 h-4 text-chart-2" />
-                    <div className="w-0.5 h-8 bg-border" />
-                    {bookedTicket.hasTransfer && (
-                      <>
-                        <ArrowUpDownIcon className="w-3.5 h-3.5 text-chart-4" />
-                        <div className="w-0.5 h-8 bg-border" />
-                      </>
-                    )}
-                    <MapPinIcon className="w-4 h-4 text-destructive" />
+              <div className="px-6 py-6 space-y-6 bg-card/80 backdrop-blur-xl">
+                <div className="flex items-start gap-4">
+                  <div className="flex flex-col items-center gap-1 pt-1">
+                    <div className="w-3 h-3 rounded-full bg-secondary shadow-[0_0_10px_rgba(var(--secondary),0.5)]" />
+                    <div className="w-0.5 h-12 bg-gradient-to-b from-secondary to-destructive opacity-20" />
+                    <div className="w-3 h-3 rounded-full bg-destructive shadow-[0_0_10px_rgba(var(--destructive),0.5)]" />
                   </div>
-                  <div className="flex-1 space-y-3">
+                  <div className="flex-1 space-y-5">
                     <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("ticket.from")}</p>
-                      <p className="text-sm font-semibold" data-testid="text-ticket-source">
+                      <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-widest">{t("ticket.from")}</p>
+                      <p className="text-lg font-bold mt-0.5" data-testid="text-ticket-source">
                         {bookedTicket.sourceName}
-                        {bookedTicket.sourcePlatform && (
-                          <span className="ml-2 text-xs font-normal text-muted-foreground">{t("ticket.platform")} {bookedTicket.sourcePlatform}</span>
-                        )}
                       </p>
+                      {bookedTicket.sourcePlatform && (
+                         <div className="flex items-center gap-1.5 mt-1">
+                           <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-bold text-muted-foreground">{t("ticket.platform")} {bookedTicket.sourcePlatform}</span>
+                         </div>
+                      )}
                     </div>
-                    {bookedTicket.hasTransfer && bookedTicket.transferStation && (
-                      <div className="p-2 rounded-md bg-chart-4/5 border border-chart-4/15" data-testid="text-ticket-transfer">
-                        <p className="text-[10px] text-chart-4 uppercase tracking-wider font-semibold">{t("ticket.platformChangeAt")}</p>
-                        <p className="text-xs font-semibold mt-0.5">{bookedTicket.transferStation}</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          {t("ticket.platform")} {bookedTicket.transferFromPlatform} → {t("ticket.platform")} {bookedTicket.transferToPlatform}
-                        </p>
-                      </div>
-                    )}
+
                     <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("ticket.to")}</p>
-                      <p className="text-sm font-semibold" data-testid="text-ticket-dest">
+                      <p className="text-[11px] text-muted-foreground font-bold uppercase tracking-widest">{t("ticket.to")}</p>
+                      <p className="text-lg font-bold mt-0.5" data-testid="text-ticket-dest">
                         {bookedTicket.destName}
-                        {bookedTicket.destPlatform && (
-                          <span className="ml-2 text-xs font-normal text-muted-foreground">{t("ticket.platform")} {bookedTicket.destPlatform}</span>
-                        )}
                       </p>
+                      {bookedTicket.destPlatform && (
+                         <div className="flex items-center gap-1.5 mt-1">
+                           <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-bold text-muted-foreground">{t("ticket.platform")} {bookedTicket.destPlatform}</span>
+                         </div>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                <div className="border-t border-dashed pt-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Ticket ID</p>
-                      <p className="font-mono text-xs font-semibold mt-0.5">{bookedTicket.id.slice(0, 12)}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("ticket.totalFare")}</p>
-                      <p className="font-bold text-primary mt-0.5">
-                        {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(bookedTicket.totalFare)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("ticket.passengers")}</p>
-                      <p className="text-sm font-semibold mt-0.5">{bookedTicket.passengers}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("ticket.status")}</p>
-                      <Badge variant="default" className="text-[10px] mt-0.5">{bookedTicket.status}</Badge>
-                    </div>
+                <div className="grid grid-cols-2 gap-6 pt-4 border-t border-dashed border-border/50">
+                  <div>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Ticket ID</p>
+                    <p className="font-mono text-xs font-bold mt-1 text-primary">{bookedTicket.id.slice(0, 12)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{t("ticket.totalFare")}</p>
+                    <p className="text-lg font-black text-secondary mt-0.5">
+                      {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(bookedTicket.totalFare)}
+                    </p>
                   </div>
                 </div>
 
-                <div className="border-t border-dashed pt-4 flex flex-col items-center gap-3">
-                  <p className="text-xs text-muted-foreground font-medium">{t("ticket.scanQR")}</p>
-                  <div className="p-2 bg-white rounded-lg">
+                <div className="pt-6 flex flex-col items-center gap-4 bg-muted/30 rounded-2xl p-4">
+                  <div className="p-3 bg-white rounded-2xl shadow-xl">
                     <img
                       src={qrDataUrl}
                       alt="Ticket QR Code"
-                      className="w-44 h-44"
+                      className="w-48 h-48"
                       data-testid="img-qr-code"
                     />
                   </div>
+                  <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">{t("ticket.scanQR")}</p>
                 </div>
               </div>
             </CardContent>
@@ -280,7 +271,7 @@ export default function BookTicket() {
           )}
         </div>
 
-        <Card data-testid="card-station-select">
+        <Card data-testid="card-station-select" className="glass-card border-0 mb-2 transition-all duration-300 hover:shadow-glow-primary hover:-translate-y-1">
           <CardContent className="pt-5 pb-5 space-y-3">
             <div className="space-y-1.5">
               <Label className="text-xs font-medium flex items-center gap-1.5">
@@ -377,7 +368,7 @@ export default function BookTicket() {
           </CardContent>
         </Card>
 
-        <Card data-testid="card-passengers">
+        <Card data-testid="card-passengers" className="glass-card border-0 mb-2 transition-all duration-300 hover:shadow-glow-primary hover:-translate-y-1">
           <CardContent className="pt-5 pb-5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -412,7 +403,7 @@ export default function BookTicket() {
         </Card>
 
         {pricing && (
-          <Card data-testid="card-pricing-info" className="border-primary/20">
+          <Card data-testid="card-pricing-info" className="glass-card border-primary/20 mb-2 transition-all duration-300 hover:shadow-glow-primary hover:-translate-y-1">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <SparklesIcon className="w-4 h-4 text-primary" />
@@ -482,7 +473,7 @@ export default function BookTicket() {
         )}
 
         {showPayment && (
-          <Card data-testid="card-payment">
+          <Card data-testid="card-payment" className="glass-card border-0 transition-all duration-300 hover:shadow-glow-primary hover:-translate-y-1">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <CreditCardIcon className="w-4 h-4" />
