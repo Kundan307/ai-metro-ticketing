@@ -103,22 +103,24 @@ function HeaderBar() {
   const { user } = useAuth();
   const isUserRole = user?.role === "user";
   return (
-    <header className="flex items-center justify-between gap-2 px-2 border-b h-12 flex-shrink-0">
+    <header className="flex items-center justify-between gap-4 px-4 h-16 border-b border-border/40 bg-background/80 backdrop-blur-xl sticky top-0 z-50 flex-shrink-0 shadow-sm">
       <SidebarTrigger data-testid="button-sidebar-toggle" />
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         {user && isUserRole && (
           <Link href="/wallet">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary/5 border border-primary/10 cursor-pointer" data-testid="header-wallet-link">
-              <WalletIcon className="w-3.5 h-3.5 text-primary" />
-              <span className="text-xs font-semibold text-primary" data-testid="text-header-balance">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 cursor-pointer hover:bg-primary/20 transition-colors shadow-sm" data-testid="header-wallet-link">
+              <WalletIcon className="w-4 h-4 text-primary" />
+              <span className="text-sm font-bold text-primary tracking-wide" data-testid="text-header-balance">
                 {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(user.walletBalance)}
               </span>
             </div>
           </Link>
         )}
         <WeatherWidget />
-        <LanguageSelector />
-        <ThemeToggle />
+        <div className="flex items-center gap-1.5 border-l border-border/40 pl-3 ml-1">
+          <LanguageSelector />
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );
