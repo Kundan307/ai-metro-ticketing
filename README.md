@@ -1,42 +1,45 @@
 # SmartAI Metro - Bangalore Metro Ticketing System
 
-A modern, full-stack web application for the Bangalore Namma Metro system. It provides a seamless interface for passengers to book tickets, plan routes, and view live metro insights. It also includes an admin dashboard for managing the system and a QR code scanner for station entry/exit.
+A modern, full-stack, AI-powered web and mobile application for the Bangalore Namma Metro system. It provides a seamless interface for passengers to book tickets, plan multi-modal routes, analyze real-time crowd data, and get AI-assisted travel insights. Features an admin dashboard for operations monitoring and a comprehensive QR code validation system.
 
-## ✨ Features
+## ✨ Key Features
 
-- **Route Planner:** Plan journeys between Purple and Green line stations, view estimated travel times, fares, transfers, and real-time crowd levels.
-- **Smart Booking System:** Book QR code tickets for up to 12 passengers at a time. The system features **dynamic pricing**, where fares may surge slightly during peak hours or high demand.
-- **Voice Assistant:** An integrated voice assistant that helps users understand fares, check train timings, and get route information hands-free.
-- **QR Scanner:** A built-in web-based QR scanner for simulated station entry and exit validation. 
-- **Admin Dashboard & Live Insights:** View live statistics including total tickets booked, current active passengers in the system, revenue, and predictive demand insights.
-- **Wallet & Transactions:** Users have a simulated digital wallet for quick, seamless ticket purchases and refunds.
-- **Weather Integration:** A live weather widget on the dashboard to help passengers plan their journeys better based on current Bangalore weather.
+- **Smart Route Planner:** Plan journeys across the entire Purple and Green line network (68 stations). It calculates First & Last Mile connectivity (Auto, Cab, Bus, Walk) using a database of 150+ Bangalore POIs and Nominatim geocoding fallback. It suggests the Fastest, Cheapest, and Best Value routes.
+- **AI Metro Assistant & Insights (Powered by Google Gemini):** An integrated chatbot that answers queries on timings, routes, fares, and crowd levels, and can accurately parse natural language booking intents. Additionally, the dashboard provides AI-generated travel tips and dynamic pricing insights based on live system load.
+- **Dynamic Pricing Engine:** Fares automatically adjust based on distance, time of day (peak vs. off-peak), and real-time station congestion, encouraging off-peak travel while capping surge fares to protect passengers.
+- **Real-Time Crowd Simulator:** Live, simulated passenger count and crowd levels ("low", "medium", "high") broadcasted to all active clients via WebSockets (Socket.IO).
+- **Wallet & Transactions:** Built-in digital wallet for users to seamlessly add money, purchase tickets, and receive automatic refunds upon ticket cancellation.
+- **Advanced Booking & Validation System:** Group bookings (up to 12 passengers), dynamic QR Code ticket generation, and a web-based QR Scanner with full lifecycle validation (Entry, Exit, Cancelled, Used). Built-in fraud detection alerts staff to invalid or cancelled tickets.
+- **Live Admin Dashboard:** Real-time visibility into total bookings, active passengers inside the metro system, completed trips, fraud alerts, and a live log of recent scanner activity.
+- **Multilingual Support:** Application UI is available in English, Kannada, and Hindi.
+- **PWA (Progressive Web App):** Fully installable cross-platform app experience. Includes accessibility features, customizable themes (Dark/Light), and a live weather widget.
 
 ## 🛠️ Tech Stack
 
 **Frontend:**
-- React (18.x) + Vite
-- TypeScript
+- React (18.x) + Vite + TypeScript
 - Tailwind CSS + shadcn/ui components (Radix UI)
 - Wouter (for lightweight routing)
 - TanStack Query (React Query) for data fetching
-- `html5-qrcode` for QR scanning
-- Web Speech API for the Voice Assistant
+- `html5-qrcode` & `qrcode` for QR scanning and generation
+- Socket.IO-Client for real-time updates
+- Vite PWA for Progressive Web App support
 
 **Backend:**
-- Express.js (Node.js)
-- TypeScript
-- Drizzle ORM
-- PostgreSQL (via `pg`)
-- `express-session` for authentication management
+- Express.js (Node.js 20.x) + TypeScript
+- PostgreSQL (via `pg`) + Drizzle ORM
+- Google Generative AI (Gemini Flash)
+- Socket.IO for WebSockets
+- `express-session` + `memorystore` for authentication management
 - Zod for payload validation
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js (v18 or higher recommended)
-- A PostgreSQL database (or you can use the built-in simulated storage if configured)
+- Node.js (v20+ recommended)
+- A PostgreSQL server running locally or remotely
+- A Google Gemini API Key
 
 ### Installation & Setup
 
@@ -46,19 +49,20 @@ A modern, full-stack web application for the Bangalore Namma Metro system. It pr
    ```
 
 2. **Configure Environment Variables:**
-   Create a `.env` file in the root directory and add the following lines (replace with your actual DB credentials or secrets):
+   Create a `.env` file in the root directory and add the necessary variables:
    ```env
    DATABASE_URL=postgresql://user:password@localhost:5432/metro_db
    SESSION_SECRET=your_super_secret_session_key
    ADMIN_SECRET=admin_secret_key
+   GOOGLE_GEMINI_API_KEY=your_gemini_api_key
    ```
 
-3. **Push the database schema:**
-   If you're using Postgres, push the Drizzle schema to your database first:
+3. **Database Setup & Seeding:**
+   Push the Drizzle schema to your database first:
    ```bash
    npm run db:push
    ```
-   *Note: On first boot, the system automatically seeds the 52 Purple and Green line stations.*
+   *Note: On first server boot, the system automatically seeds all 68 Purple and Green line stations, along with Demo, Admin, and Scanner default user accounts.*
 
 4. **Start the Development Server:**
    ```bash
@@ -68,6 +72,13 @@ A modern, full-stack web application for the Bangalore Namma Metro system. It pr
 5. **Access the application:**
    Open your browser and navigate to `http://localhost:5000`.
 
+### Default Accounts
+
+During seeding, the following default accounts are created (Password: `demo123`):
+- **User:** `demo@bmrcl.com`
+- **Scanner:** `scanner@bmrcl.com`
+- **Admin:** `admin@bmrcl.com`
+
 ### Building for Production
 
 To create a production build and run the server:
@@ -75,14 +86,16 @@ To create a production build and run the server:
 npm run build
 npm start
 ```
+A Railway deployment configuration (`railway.json`) is also included.
 
 ## 🗺️ Application Structure
 
-- `/client/src/pages/` - React components for the main views (Dashboard, Booking, Route Planner, Scanner, etc.)
-- `/client/src/components/` - Reusable UI components (Sidebar, Voice Assistant, Headers, layout wrappers, etc.)
-- `/server/` - Express backend routes, API controllers, and mock insight generation.
+- `/client/src/pages/` - React components for the main views (Dashboard, Booking, Route Planner, Scanner, Tickets, Wallet, Maps, Insights, etc.)
+- `/client/src/components/` - Reusable UI components (Sidebar, AI Chatbot, Weather Widget, Layout wrappers, Theme/Language providers, etc.)
+- `/server/routes.ts` - Core Express backend routes, API controllers, Fare logic, Nominatim Geocoding, Gemini integration, and Admin metrics.
 - `/server/storage.ts` - Database interface logic (using Drizzle ORM).
-- `/shared/schema.ts` - Shared Zod schemas and Drizzle tables used by both the frontend and backend to ensure type safety.
+- `/server/crowd-simulator.ts` & `/server/seed.ts` - Autonomous scripts for simulating live workloads and initializing app states.
+- `/shared/schema.ts` - Shared Zod schemas and Drizzle tables used by both the frontend and backend for end-to-end type safety.
 
 ## 📄 License
 
