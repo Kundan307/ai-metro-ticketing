@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="100%" height="100%">
+  <!-- Background -->
+  <rect width="1000" height="1000" fill="#121620" />
+  
+  <!-- Bangalore Outline Mock -->
+  <path d="M 200 200 Q 500 100 800 200 T 800 800 T 200 800 Z" fill="#1e2433" stroke="#2a3245" stroke-width="4"/>
+  
+  <!-- Map Grid Overlay -->
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#ffffff" stroke-opacity="0.05" />
+  </pattern>
+  <rect width="1000" height="1000" fill="url(#grid)" />
+
+  <!-- Purple Line -->
+  <path d="M 100 550 C 300 550, 450 510, 600 510 C 750 510, 850 450, 950 400" fill="none" stroke="#7B2D8E" stroke-width="8" stroke-linecap="round" />
+  <text x="100" y="530" fill="#7B2D8E" font-family="sans-serif" font-weight="bold" font-size="20">Purple Line</text>
+
+  <!-- Green Line -->
+  <path d="M 450 150 L 450 450 L 450 900" fill="none" stroke="#00A651" stroke-width="8" stroke-linecap="round" />
+  <text x="470" y="160" fill="#00A651" font-family="sans-serif" font-weight="bold" font-size="20">Green Line</text>
+
+  <!-- Majestic Interchange -->
+  <circle cx="450" cy="510" r="16" fill="#ffffff" stroke="#eab308" stroke-width="4"/>
+  <text x="475" y="515" fill="#ffffff" font-family="sans-serif" font-weight="bold" font-size="24">Majestic</text>
+
+  <!-- Central Nodes -->
+  <circle cx="610" cy="510" r="10" fill="#ffffff" stroke="#7B2D8E" stroke-width="3"/>
+  <text x="610" y="490" fill="#ffffff" font-family="sans-serif" font-size="14" text-anchor="middle">MG Road</text>
+  
+  <circle cx="730" cy="510" r="10" fill="#ffffff" stroke="#7B2D8E" stroke-width="3"/>
+  <text x="730" y="490" fill="#ffffff" font-family="sans-serif" font-size="14" text-anchor="middle">Indiranagar</text>
+
+  <circle cx="450" cy="690" r="10" fill="#ffffff" stroke="#00A651" stroke-width="3"/>
+  <text x="470" y="695" fill="#ffffff" font-family="sans-serif" font-size="14">Jayanagar</text>
+  
+  <circle cx="450" cy="390" r="10" fill="#ffffff" stroke="#00A651" stroke-width="3"/>
+  <text x="470" y="395" fill="#ffffff" font-family="sans-serif" font-size="14">Yeshwanthpur</text>
+
+  <!-- Title -->
+  <text x="40" y="60" fill="#ffffff" font-family="sans-serif" font-weight="bold" font-size="40" opacity="0.8">Namma Metro Network Diagram</text>
+  <text x="40" y="90" fill="#9ca3af" font-family="sans-serif" font-size="20" opacity="0.8">Schematic Representation</text>
+</svg>
