@@ -51,6 +51,18 @@ function getDemandLevel(hour: number, crowdLevel: string): string {
   return "low";
 }
 
+function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 function getPricingMultiplier(demandLevel: string): number {
   if (demandLevel === "high") return 1.10;
   if (demandLevel === "medium") return 1.05;
@@ -60,19 +72,25 @@ function getPricingMultiplier(demandLevel: string): number {
 
 function getRecommendation(demandLevel: string): string {
   if (demandLevel === "high") {
-    const offPeakHours = [11, 12, 13, 14, 15];
-    const suggestedHour = offPeakHours[Math.floor(Math.random() * offPeakHours.length)];
-    return `High demand detected. Surge pricing of 10% applied. Consider traveling at ${suggestedHour}:00 for lower fares.`;
+    return `High demand detected. A 10% surge is applied (capped at ₹110). Consider traveling during off-peak hours for lower fares.`;
   }
   if (demandLevel === "medium") {
-    return `Moderate demand. A slight 5% surge is applied. Off-peak hours (11 AM - 3 PM) offer better rates.`;
+    return `Moderate demand. Standard fares with a slight 5% adjustment apply.`;
   }
-  return `Low demand - great time to travel! Enjoy a 5% discount on your fare.`;
+  return `Low demand - great time to travel! Enjoy a 5% discount on your fare today.`;
 }
 
-function calculateBaseFare(sourceOrder: number, destOrder: number): number {
-  const distance = Math.abs(sourceOrder - destOrder);
-  return Math.max(10, distance * 5);
+function calculateBaseFare(distKm: number): number {
+  if (distKm <= 2) return 10;
+  if (distKm <= 4) return 20;
+  if (distKm <= 6) return 30;
+  if (distKm <= 8) return 40;
+  if (distKm <= 10) return 50;
+  if (distKm <= 12) return 60;
+  if (distKm <= 15) return 60; // Chart says 10-12=60, 15-20=70. Mapping 12-15 to 60.
+  if (distKm <= 20) return 70;
+  if (distKm <= 25) return 80;
+  return 90;
 }
 
 // ── Main Routing ─────────────────────────────────────────────────────────────
@@ -133,11 +151,13 @@ export async function registerRoutes(
           );
           
           if (sourceStation && destStation) {
-            const baseFare = calculateBaseFare(sourceStation.orderIndex, destStation.orderIndex);
+            const distKm = getDistanceKm(Number(sourceStation.lat), Number(sourceStation.lng), Number(destStation.lat), Number(destStation.lng));
+            const baseFare = calculateBaseFare(distKm);
             const passengerCount = intentData.count || 1;
             const hour = new Date().getHours();
             const demandLevel = getDemandLevel(hour, sourceStation.crowdLevel || "low");
-            const totalFare = Math.round(baseFare * getPricingMultiplier(demandLevel) * passengerCount);
+            const dynamicFare = Math.min(110, Math.round(baseFare * getPricingMultiplier(demandLevel)));
+            const totalFare = dynamicFare * passengerCount;
             
             bookingDraft = {
               sourceId: sourceStation.id,
@@ -285,10 +305,11 @@ export async function registerRoutes(
       if (!source || !dest) return res.status(404).json({ message: "Station not found" });
 
       const hour = new Date().getHours();
+      const distKm = getDistanceKm(Number(source.lat), Number(source.lng), Number(dest.lat), Number(dest.lng));
       const demandLevel = getDemandLevel(hour, dest.crowdLevel);
       const multiplier = getPricingMultiplier(demandLevel);
-      const baseFare = calculateBaseFare(source.orderIndex, dest.orderIndex);
-      const dynamicFare = Math.round(baseFare * multiplier);
+      const baseFare = calculateBaseFare(distKm);
+      const dynamicFare = Math.min(110, Math.round(baseFare * multiplier));
 
       res.json({
         baseFare,
@@ -623,7 +644,8 @@ export async function registerRoutes(
       }
 
       const metroTime = metroStations.length * 2 + (metroTransfer ? 5 : 0);
-      const metroFare = calculateBaseFare(srcStation.orderIndex, dstStation.orderIndex);
+      const distKm = getDistanceKm(Number(srcStation.lat), Number(srcStation.lng), Number(dstStation.lat), Number(dstStation.lng));
+      const metroFare = calculateBaseFare(distKm);
 
       const firstMileDist = nearSrc.distanceKm;
       const lastMileDist = nearDst.distanceKm;
@@ -818,10 +840,12 @@ export async function registerRoutes(
       if (!source || !dest) return res.status(404).json({ message: "Station not found" });
 
       const hour = new Date().getHours();
+      const distKm = getDistanceKm(Number(source.lat), Number(source.lng), Number(dest.lat), Number(dest.lng));
       const demandLevel = getDemandLevel(hour, dest.crowdLevel);
       const multiplier = getPricingMultiplier(demandLevel);
-      const baseFare = calculateBaseFare(source.orderIndex, dest.orderIndex);
-      const dynamicFare = Math.round(baseFare * multiplier);
+      const baseFare = calculateBaseFare(distKm);
+      // Apply multiplier and enforce ₹110 cap per person
+      const dynamicFare = Math.min(110, Math.round(baseFare * multiplier));
       const totalFare = dynamicFare * parsed.passengers;
 
       if (parsed.paymentMethod === "wallet") {
