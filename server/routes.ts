@@ -153,7 +153,7 @@ export async function registerRoutes(
           if (sourceStation && destStation) {
             const distKm = getDistanceKm(Number(sourceStation.lat), Number(sourceStation.lng), Number(destStation.lat), Number(destStation.lng));
             const baseFare = calculateBaseFare(distKm);
-            const passengerCount = intentData.count || 1;
+            const passengerCount = Math.max(1, Math.min(12, intentData.count || 1));
             const hour = new Date().getHours();
             const demandLevel = getDemandLevel(hour, sourceStation.crowdLevel || "low");
             const dynamicFare = Math.min(110, Math.round(baseFare * getPricingMultiplier(demandLevel)));
@@ -917,7 +917,7 @@ export async function registerRoutes(
       if (!ticket) return res.status(404).json({ message: "Ticket not found" });
 
       let qrDataUrl: string | null = null;
-      if (ticket.qrData) {
+      if (ticket.qrData && ticket.status !== "cancelled" && ticket.status !== "used") {
         qrDataUrl = await QRCode.toDataURL(ticket.qrData);
       }
       res.json({ ticket, qrDataUrl });
@@ -930,21 +930,46 @@ export async function registerRoutes(
     try {
       const parsed = scanTicketSchema.parse(req.body);
       const ticket = await storage.getTicket(parsed.ticketId);
-      if (!ticket) return res.json({ valid: false, message: "Ticket not found" });
+      if (!ticket) return res.json({ valid: false, fraudDetected: false, message: "Ticket not found" });
+
+      // Explicitly deny cancelled tickets with fraud-level alert
+      if (ticket.status === "cancelled") {
+        return res.json({
+          valid: false,
+          fraudDetected: true,
+          fraudReason: "This ticket was cancelled and is no longer valid. Entry denied.",
+          message: "🚫 CANCELLED TICKET — Entry Denied",
+          ticket,
+        });
+      }
+
+      if (ticket.status !== "active") {
+        return res.json({ 
+          valid: false, 
+          fraudDetected: false,
+          message: `Ticket is not active (Status: ${ticket.status})`, 
+          ticket 
+        });
+      }
 
       const entryCount = ticket.entryCount ?? 0;
       const scanType = parsed.scanType || (entryCount < ticket.passengers ? "entry" : "exit");
 
-      if (scanType === "entry" && entryCount >= ticket.passengers) return res.json({ valid: false, message: "All passengers already entered" });
+      if (scanType === "entry" && entryCount >= ticket.passengers) {
+        return res.json({ valid: false, fraudDetected: false, message: "All passengers for this ticket have already entered", ticket });
+      }
       
+      let updatedTicket;
       if (scanType === "entry") {
         await storage.updateTicket(ticket.id, { entryCount: entryCount + 1, scannedAt: new Date() });
+        updatedTicket = await storage.getTicket(ticket.id);
       } else {
         const exitCount = (ticket.exitCount ?? 0) + 1;
         await storage.updateTicket(ticket.id, { exitCount, status: exitCount >= ticket.passengers ? "used" : "active" });
+        updatedTicket = await storage.getTicket(ticket.id);
       }
 
-      res.json({ valid: true, message: "Scan successful" });
+      res.json({ valid: true, fraudDetected: false, message: "Scan successful", ticket: updatedTicket });
     } catch (error: any) {
       res.status(400).json({ message: error.message || "Scan failed" });
     }

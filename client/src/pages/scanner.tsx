@@ -6,10 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import {
   ScanLineIcon, CheckCircleIcon, XCircleIcon, ShieldAlertIcon, RefreshCcwIcon,
   TrainFrontIcon, UsersIcon, IndianRupeeIcon, AlertCircleIcon, Loader2Icon,
   ArrowRightToLineIcon, ArrowLeftFromLineIcon, Settings2Icon,
+  ClockIcon, WalletIcon, TrendingUpIcon,
 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -31,6 +33,13 @@ type ScanResult = {
     status: string;
     entryCount?: number;
     exitCount?: number;
+    createdAt: string;
+    paymentMethod: string;
+    baseFare: number;
+    dynamicFare: number;
+    demandLevel: string;
+    sourcePlatform?: number;
+    destPlatform?: number;
   };
 };
 
@@ -86,7 +95,7 @@ export default function ScannerPage() {
 
   const [manualTicket, setManualTicket] = useState("");
   const [isScanning, setIsScanning] = useState(false);
-  const [scanMode, setScanMode] = useState<"auto" | "entry" | "exit">("auto");
+  const [scanMode, setScanMode] = useState<"entry" | "exit">("entry");
   const [lastResult, setLastResult] = useState<ScanResult | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
 
@@ -96,8 +105,7 @@ export default function ScannerPage() {
 
   const scanMutation = useMutation({
     mutationFn: async (ticketId: string) => {
-      const payload: any = { ticketId };
-      if (scanMode !== "auto") payload.scanType = scanMode;
+      const payload: any = { ticketId, scanType: scanMode };
       const res = await apiRequest("POST", "/api/scan", payload);
       return await res.json() as ScanResult;
     },
@@ -155,11 +163,11 @@ export default function ScannerPage() {
               scanMutation.mutate(payload.ticketId);
             } else {
               playErrorSound();
-              toast({ title: "Invalid QR", description: "Not a SmartAI Metro ticket QR.", variant: "destructive" });
+              setLastResult({ valid: false, fraudDetected: false, message: "Not a SmartAI Metro ticket QR code." });
             }
           } catch {
             playErrorSound();
-            toast({ title: "Invalid QR", description: "Could not read QR code data.", variant: "destructive" });
+            setLastResult({ valid: false, fraudDetected: false, message: "Could not read QR code data." });
           }
         },
         undefined
@@ -190,10 +198,14 @@ export default function ScannerPage() {
   const isFraud = lastResult?.fraudDetected;
 
   // Calculate remaining
-  const passengers = lastResult?.ticket?.passengers ?? 1;
+  const passengers = lastResult?.ticket?.passengers ?? 0;
   const entries = lastResult?.ticket?.entryCount ?? 0;
   const exits = lastResult?.ticket?.exitCount ?? 0;
-  const remaining = entries < passengers ? (passengers - entries) : (passengers - exits);
+  // If we are scanning at Entry, we care about how many entries are left (including current one just scanned)
+  // If we are scanning at Exit, we care about how many exits are left
+  const remaining = scanMode === "entry" 
+    ? (passengers - entries) 
+    : (passengers - exits);
 
   return (
     <div className="container max-w-lg mx-auto py-8 px-4 space-y-6 pb-16">
@@ -219,9 +231,6 @@ export default function ScannerPage() {
               onValueChange={(val) => val && setScanMode(val as any)}
               className="justify-start sm:justify-end border rounded-md p-1"
             >
-              <ToggleGroupItem value="auto" aria-label="Auto detect mode" className="text-xs px-3 h-8">
-                Auto
-              </ToggleGroupItem>
               <ToggleGroupItem value="entry" aria-label="Entry Gate mode" className="text-xs px-3 h-8 gap-1.5">
                 <ArrowRightToLineIcon className="w-3.5 h-3.5" />
                 Entry
@@ -308,18 +317,133 @@ export default function ScannerPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Countdown Badge */}
-            {isValid && (
-              <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 text-center animate-in zoom-in-95 duration-300">
-                <p className="text-primary font-bold text-4xl leading-tight">{remaining}</p>
-                <p className="text-[10px] text-primary/70 uppercase tracking-[0.2em] font-black">
-                  {remaining === 1 ? t("scanner.passengerRemaining") : t("scanner.passengersRemaining")}
-                </p>
+            {/* 1. Ticket info (Primary focus for staff) */}
+            {lastResult.ticket && (
+              <div className="rounded-xl border bg-card/50 shadow-sm divide-y text-sm overflow-hidden anim-fade-in border-primary/20">
+                <div className="bg-primary/10 px-4 py-2 text-[10px] font-black text-primary uppercase tracking-widest flex justify-between items-center">
+                  <span>Verified Ticket Data</span>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={lastResult.ticket.status === "active" ? "default" : "destructive"} className="text-[9px] px-1.5 py-0">
+                      {lastResult.ticket.status.toUpperCase()}
+                    </Badge>
+                    <span className="font-mono">#{lastResult.ticket.id.slice(0, 8).toUpperCase()}</span>
+                  </div>
+                </div>
+
+                {/* Route & Platforms */}
+                <div className="flex items-center gap-3 px-4 py-3.5">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <TrainFrontIcon className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex flex-col flex-1">
+                    <span className="text-[10px] text-muted-foreground font-medium uppercase">Journey</span>
+                    <span className="font-bold text-base leading-tight">
+                      {lastResult.ticket.sourceName} <span className="text-muted-foreground font-normal mx-1">→</span> {lastResult.ticket.destName}
+                    </span>
+                    <span className="text-[10px] text-primary font-bold mt-0.5">
+                      Platform {lastResult.ticket.sourcePlatform || "1"} to Platform {lastResult.ticket.destPlatform || "1"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Grid Info */}
+                <div className="grid grid-cols-2 divide-x">
+                  <div className="flex items-center gap-3 px-4 py-3">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <ClockIcon className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-muted-foreground font-medium uppercase">Booked At</span>
+                      <span className="font-bold text-xs truncate">
+                        {new Date(lastResult.ticket.createdAt).toLocaleString([], { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 px-4 py-3">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <WalletIcon className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-muted-foreground font-medium uppercase">Method</span>
+                      <span className="font-bold text-xs capitalize">{lastResult.ticket.paymentMethod}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pricing Info */}
+                <div className="grid grid-cols-2 divide-x bg-muted/5">
+                  <div className="flex items-center gap-3 px-4 py-3">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <UsersIcon className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-muted-foreground font-medium uppercase">Quantity</span>
+                      <span className="font-bold">{lastResult.ticket.passengers || 1} Pax</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 px-4 py-3">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <IndianRupeeIcon className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-muted-foreground font-medium uppercase">Fare Total</span>
+                      <span className="font-bold text-primary">₹{(lastResult.ticket.totalFare || 0).toFixed(0)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Detailed Breakdown */}
+                <div className="px-4 py-2.5 bg-muted/10 flex justify-between items-center text-[10px]">
+                  <span className="text-muted-foreground">Pricing: Base ₹{(lastResult.ticket.baseFare || 0).toFixed(0)} + Dynamic ₹{(lastResult.ticket.dynamicFare || 0).toFixed(0)}</span>
+                  <span className="font-bold text-primary tracking-tight">{lastResult.ticket.demandLevel.toUpperCase()} DEMAND</span>
+                </div>
               </div>
             )}
-            {/* Status message */}
-            <div className={`flex items-start gap-2 p-3 rounded-md text-sm font-medium ${
-              isFraud ? "bg-red-500/10 text-red-700" :
+
+            {/* 2. Progress Counter + Remaining (shown for all scans with ticket data) */}
+            {lastResult.ticket && (
+              <div className={`border rounded-2xl p-5 text-center anim-fade-in delay-100 ${
+                isValid ? "bg-primary/5 border-primary/20" : "bg-muted/30 border-muted-foreground/20"
+              }`}>
+                <div className="flex items-center justify-center gap-6 sm:gap-10">
+                  {/* Scanned Count */}
+                  <div className="text-center">
+                    <p className="text-[10px] text-primary/70 uppercase tracking-[0.2em] font-black mb-1">
+                      {scanMode === "entry" ? "Entries" : "Exits"}
+                    </p>
+                    <p className="text-primary font-bold text-4xl sm:text-5xl tabular-nums tracking-tighter">
+                      {scanMode === "entry" ? entries : exits}<span className="text-xl sm:text-2xl opacity-40 font-medium">/{passengers || 1}</span>
+                    </p>
+                  </div>
+
+                  <Separator orientation="vertical" className="h-14" />
+
+                  {/* Remaining Count */}
+                  <div className="text-center">
+                    <p className="text-[10px] uppercase tracking-[0.2em] font-black mb-1" style={{ color: remaining > 0 ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))' }}>
+                      Remaining
+                    </p>
+                    <p className={`font-bold text-4xl sm:text-5xl tabular-nums tracking-tighter ${
+                      remaining > 0 ? "text-green-600" : "text-muted-foreground"
+                    }`}>
+                      {remaining > 0 ? remaining : 0}
+                      <span className="text-xl sm:text-2xl opacity-40 font-medium"> pax</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Gate info */}
+                <div className="mt-3 pt-3 border-t border-primary/10 flex justify-center gap-4 text-[10px] text-muted-foreground">
+                  <span>Gate: <strong className="text-primary">{scanMode.toUpperCase()}</strong></span>
+                  <span>•</span>
+                  <span>Total: <strong>{passengers}</strong> passenger{passengers !== 1 ? "s" : ""}</span>
+                </div>
+              </div>
+            )}
+
+            {/* 3. Status message & Rejection reasons */}
+            <div className={`flex items-start gap-2 p-3 rounded-md text-sm font-medium anim-fade-in delay-200 ${
+              isFraud ? "bg-red-500/10 text-red-700 font-bold" :
               isValid ? "bg-green-500/10 text-green-700" :
               "bg-orange-400/10 text-orange-700"
             }`}>
@@ -327,94 +451,16 @@ export default function ScannerPage() {
               <span>{lastResult.message}</span>
             </div>
 
-            {/* Fraud reason */}
             {isFraud && lastResult.fraudReason && (
               <div className="flex items-start gap-2 p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm">
                 <ShieldAlertIcon className="w-4 h-4 mt-0.5 shrink-0" />
-                <span><strong>{t("scanner.fraudReasonLabel")}:</strong> {lastResult.fraudReason}</span>
+                <span><strong>Reason:</strong> {lastResult.fraudReason}</span>
               </div>
             )}
 
-            {/* Ticket info */}
-            {lastResult.ticket && (
-              <div className="rounded-lg border bg-background divide-y text-sm overflow-hidden">
-                <div className="flex items-center gap-2 px-4 py-3">
-                  <TrainFrontIcon className="w-4 h-4 text-primary shrink-0" />
-                  <span className="text-muted-foreground">{t("scanner.route")}</span>
-                  <span className="ml-auto font-semibold text-right">
-                    {lastResult.ticket.sourceName} → {lastResult.ticket.destName}
-                  </span>
-                </div>
-
-                {/* Passenger progress tracker */}
-                <div className="px-4 py-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <UsersIcon className="w-4 h-4 text-primary shrink-0" />
-                    <span className="text-muted-foreground">{t("scanner.passengers")}</span>
-                    <span className="ml-auto font-semibold">{lastResult.ticket.passengers} {t("scanner.total")}</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    <div>
-                      <p className="text-[10px] text-muted-foreground font-medium mb-1 uppercase tracking-wide">Entry</p>
-                      <div className="flex flex-wrap gap-1">
-                        {Array.from({ length: lastResult.ticket.passengers }).map((_, i) => (
-                          <div
-                            key={i}
-                            title={i < (lastResult.ticket?.entryCount ?? 0) ? `${t("scanner.passengerRemaining")} ${i + 1} ${t("scanner.entry")}` : t("scanner.pending")}
-                            className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 ${
-                              i < (lastResult.ticket?.entryCount ?? 0)
-                                ? "bg-green-500 border-green-500 text-white"
-                                : "bg-background border-muted-foreground/30 text-muted-foreground"
-                            }`}
-                          >
-                            {i + 1}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-muted-foreground font-medium mb-1 uppercase tracking-wide">Exit</p>
-                      <div className="flex flex-wrap gap-1">
-                        {Array.from({ length: lastResult.ticket.passengers }).map((_, i) => (
-                          <div
-                            key={i}
-                            title={i < (lastResult.ticket?.exitCount ?? 0) ? `${t("scanner.passengerRemaining")} ${i + 1} ${t("scanner.exit")}` : t("scanner.pending")}
-                            className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 ${
-                              i < (lastResult.ticket?.exitCount ?? 0)
-                                ? "bg-blue-500 border-blue-500 text-white"
-                                : "bg-background border-muted-foreground/30 text-muted-foreground"
-                            }`}
-                          >
-                            {i + 1}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 px-4 py-3">
-                  <IndianRupeeIcon className="w-4 h-4 text-primary shrink-0" />
-                  <span className="text-muted-foreground">{t("scanner.farePaid")}</span>
-                  <span className="ml-auto font-semibold">₹{lastResult.ticket.totalFare.toFixed(2)}</span>
-                </div>
-                <div className="flex items-center gap-2 px-4 py-3">
-                  <ScanLineIcon className="w-4 h-4 text-primary shrink-0" />
-                  <span className="text-muted-foreground">{t("scanner.ticketStatus")}</span>
-                  <span className={`ml-auto font-bold capitalize ${
-                    lastResult.ticket.status === "active" ? "text-green-600" :
-                    lastResult.ticket.status === "used" ? "text-slate-500" : "text-red-500"
-                  }`}>{lastResult.ticket.status}</span>
-                </div>
-                <div className="px-4 py-2.5">
-                  <p className="text-[11px] font-mono text-muted-foreground truncate">ID: {lastResult.ticket.id}</p>
-                </div>
-              </div>
-            )}
-
-            <Button onClick={startScanner} className="w-full" variant="outline">
+            <Button onClick={startScanner} className="w-full mt-2" variant="outline">
               <RefreshCcwIcon className="w-4 h-4 mr-2" />
-              {t("scanner.scanNext")}
+              Scan Next Ticket
             </Button>
           </CardContent>
         </Card>

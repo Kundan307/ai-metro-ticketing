@@ -127,18 +127,19 @@ function AppLayout() {
 
   useEffect(() => {
     const socket = io();
+    // Cooldown: only show one crowd alert per station every 5 minutes
+    const crowdAlertCooldown = new Map<string, number>();
 
     socket.on("crowdUpdate", (data: any) => {
       if (data.newLevel === "high") {
+        const now = Date.now();
+        const lastAlert = crowdAlertCooldown.get(data.stationName) ?? 0;
+        if (now - lastAlert < 5 * 60 * 1000) return; // skip if alerted within 5 min
+        crowdAlertCooldown.set(data.stationName, now);
         toast({
           title: `High Crowd Alert: ${data.stationName}`,
           description: `Current passenger count: ${data.passengerCount}. Expect delays.`,
           variant: "destructive",
-        });
-      } else if (data.oldLevel === "high" && data.newLevel !== "high") {
-        toast({
-          title: `Crowd Clearing: ${data.stationName}`,
-          description: `Station congestion has reduced to ${data.newLevel} levels.`,
         });
       }
     });
