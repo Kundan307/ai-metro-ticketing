@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -12,7 +12,9 @@ import {
   RouteIcon,
   LightbulbIcon,
   IndianRupeeIcon,
+  ActivityIcon,
 } from "lucide-react";
+import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts";
 import type { Station } from "@shared/schema";
 
 export default function AIInsights() {
@@ -45,6 +47,11 @@ export default function AIInsights() {
       peakHours: string[];
       revenueLift: number;
     };
+    trendData: {
+      time: string;
+      predicted: number;
+      actual: number | null;
+    }[];
   }>({
     queryKey: ["/api/insights"],
     refetchInterval: 15000,
@@ -219,25 +226,92 @@ export default function AIInsights() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <ClockIcon className="w-4 h-4" />
-            Peak Hours
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2 mb-3">
-            {(insights?.pricingInsights?.peakHours ?? []).map((hour, i) => (
-              <Badge key={i} variant="secondary" className="text-xs">
-                {hour}
-              </Badge>
-            ))}
+      <Card className="col-span-1 lg:col-span-2 overflow-hidden">
+        <CardHeader className="pb-3 border-b border-border/40 bg-muted/20">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <ActivityIcon className="w-4 h-4 text-primary" />
+                Network Crowd Trend
+              </CardTitle>
+              <CardDescription className="text-xs mt-1">
+                Predicted vs. actual passenger volume across the network.
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-3 text-[10px] font-medium">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-primary" /> Actual
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full border border-primary border-dashed" /> Predicted
+              </div>
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Ticket prices may be higher during peak hours due to demand-based dynamic pricing.
-            Travel during off-peak hours to save on fares.
-          </p>
+        </CardHeader>
+        <CardContent className="pt-6 pb-2 pl-0">
+          <div className="h-[200px] w-full">
+            {!insights || !insights.trendData || insights.trendData.length === 0 ? (
+              <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
+                Loading trend data...
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={insights.trendData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                  <defs>
+                    <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="colorPredicted" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--muted-foreground))" stopOpacity={0.1} />
+                      <stop offset="95%" stopColor="hsl(var(--muted-foreground))" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
+                  <XAxis 
+                    dataKey="time" 
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                    dy={10}
+                  />
+                  <YAxis 
+                    hide 
+                    domain={[0, 100]} 
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: "hsl(var(--popover))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "0.5rem",
+                      fontSize: "12px"
+                    }}
+                    itemStyle={{ color: "hsl(var(--foreground))" }}
+                    labelStyle={{ color: "hsl(var(--muted-foreground))", marginBottom: "0.25rem" }}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="predicted" 
+                    name="Predicted Volume"
+                    stroke="hsl(var(--muted-foreground))" 
+                    strokeDasharray="4 4"
+                    fillOpacity={1} 
+                    fill="url(#colorPredicted)" 
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="actual" 
+                    name="Actual Volume"
+                    stroke="hsl(var(--primary))" 
+                    strokeWidth={2}
+                    fillOpacity={1} 
+                    fill="url(#colorActual)" 
+                    isAnimationActive={true}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>
