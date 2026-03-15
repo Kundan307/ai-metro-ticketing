@@ -5,12 +5,44 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { MapIcon, ClockIcon, TrainFrontIcon, ZoomInIcon, ZoomOutIcon, MaximizeIcon } from "lucide-react";
+import { MapIcon, ClockIcon, TrainFrontIcon, ZoomInIcon, ZoomOutIcon, MaximizeIcon, MapPinIcon } from "lucide-react";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import type { Station } from "@shared/schema";
 import { getLineColor, getCrowdColor } from "@/lib/metro-data";
 import { useTranslation } from "@/components/language-provider";
 import { StationCoordinates } from "@/lib/metro-map-coords";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
+import metroTracks from "@/lib/metro-tracks.json";
+
+// Fix for default marker icons in Leaflet with React
+// @ts-ignore
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+});
+
+// Custom div icon for stations
+const createStationIcon = (color: string, crowdColor: string, isSelected: boolean) => {
+  return L.divIcon({
+    className: 'custom-station-marker',
+    html: `<div style="
+      width: ${isSelected ? '20px' : '14px'};
+      height: ${isSelected ? '20px' : '14px'};
+      background-color: ${color};
+      border: 2px solid ${crowdColor};
+      border-radius: 50%;
+      box-shadow: ${isSelected ? '0 0 0 3px white, 0 0 8px rgba(0,0,0,0.5)' : '0 2px 4px rgba(0,0,0,0.3)'};
+      transition: all 0.2s ease;
+    "></div>`,
+    iconSize: [isSelected ? 20 : 14, isSelected ? 20 : 14],
+    iconAnchor: [isSelected ? 10 : 7, isSelected ? 10 : 7],
+  });
+};
 
 interface TrainState {
   id: string;
@@ -47,6 +79,7 @@ export default function MetroMap() {
   const [trainStates, setTrainStates] = useState<TrainState[]>([]);
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
   const [showLiveTrains, setShowLiveTrains] = useState(true);
+  const [mapView, setMapView] = useState<"schematic" | "geographic">("geographic");
 
   const { data: stations, isLoading } = useQuery<Station[]>({
     queryKey: ["/api/stations"],
@@ -130,13 +163,22 @@ export default function MetroMap() {
 
   return (
     <div className="p-4 md:p-6 space-y-4 overflow-y-auto h-full">
-      <div className="flex flex-col gap-0.5">
-        <h1 className="text-xl font-bold tracking-tight" data-testid="text-map-title">
-          {t("map.title")}
-        </h1>
-        <p className="text-xs text-muted-foreground">
-          {t("map.subtitle")}
-        </p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex flex-col gap-0.5">
+          <h1 className="text-xl font-bold tracking-tight" data-testid="text-map-title">
+            {t("map.title")}
+          </h1>
+          <p className="text-xs text-muted-foreground">
+            {t("map.subtitle")}
+          </p>
+        </div>
+        
+        <Tabs value={mapView} onValueChange={(v) => setMapView(v as any)} className="w-[300px]">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="schematic">Schematic</TabsTrigger>
+            <TabsTrigger value="geographic">Geographic</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -184,94 +226,209 @@ export default function MetroMap() {
           <Card>
             <CardContent className="p-0">
               <div
-                className="h-[500px] rounded-md overflow-hidden relative bg-[#121620]"
+                className="h-[500px] rounded-md overflow-hidden relative"
                 data-testid="div-metro-map"
                 style={{ zIndex: 0 }}
               >
-                <TransformWrapper
-                  initialScale={1}
-                  minScale={0.5}
-                  maxScale={4}
-                  centerOnInit
-                >
-                  {({ zoomIn, zoomOut, resetTransform }) => (
-                    <>
-                      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 bg-background/80 backdrop-blur-sm p-1.5 rounded-lg border shadow-sm">
-                        <button onClick={() => zoomIn()} className="p-1.5 hover:bg-muted rounded-md transition-colors" title="Zoom In">
-                          <ZoomInIcon className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => zoomOut()} className="p-1.5 hover:bg-muted rounded-md transition-colors" title="Zoom Out">
-                          <ZoomOutIcon className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => resetTransform()} className="p-1.5 hover:bg-muted rounded-md transition-colors" title="Reset View">
-                          <MaximizeIcon className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }}>
-                        <div className="relative w-[1000px] h-[1000px]">
-                          <img
-                            src="/namma-metro-map.svg"
-                            alt="Namma Metro Network Map"
-                            className="w-full h-full object-contain pointer-events-none select-none"
-                            draggable={false}
-                          />
-                          
-                          {/* Static Station Nodes */}
-                          {stations?.map((station) => {
-                            const coords = StationCoordinates[station.name];
-                            if (!coords) return null;
-                            const isSelected = selectedStation?.id === station.id;
-                            const color = getLineColor(station.line);
-                            const crowdColor = getCrowdColor(station.crowdLevel);
-
-                            return (
-                              <div
-                                key={station.id}
-                                className={`absolute flex items-center justify-center rounded-full cursor-pointer transition-transform hover:scale-150 z-40 ${isSelected ? 'ring-2 ring-white ring-offset-2 ring-offset-background scale-150' : 'scale-100'}`}
-                                style={{
-                                  left: `${coords.x}%`,
-                                  top: `${coords.y}%`,
-                                  width: '12px',
-                                  height: '12px',
-                                  backgroundColor: color,
-                                  border: `2px solid ${crowdColor}`,
-                                  transform: 'translate(-50%, -50%)',
-                                }}
-                                onClick={() => setSelectedStation(station)}
-                                title={`${station.name} (${station.crowdLevel} crowd)`}
+                {mapView === "schematic" ? (
+                  <div className="w-full h-full bg-[#121620]">
+                    <TransformWrapper
+                      initialScale={1}
+                      minScale={0.5}
+                      maxScale={4}
+                      centerOnInit
+                    >
+                      {({ zoomIn, zoomOut, resetTransform }) => (
+                        <>
+                          <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 bg-background/80 backdrop-blur-sm p-1.5 rounded-lg border shadow-sm">
+                            <button onClick={() => zoomIn()} className="p-1.5 hover:bg-muted rounded-md transition-colors" title="Zoom In">
+                              <ZoomInIcon className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => zoomOut()} className="p-1.5 hover:bg-muted rounded-md transition-colors" title="Zoom Out">
+                              <ZoomOutIcon className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => resetTransform()} className="p-1.5 hover:bg-muted rounded-md transition-colors" title="Reset View">
+                              <MaximizeIcon className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }}>
+                            <div className="relative w-[1000px] h-[1000px]">
+                              <img
+                                src="/namma-metro-map.svg"
+                                alt="Namma Metro Network Map"
+                                className="w-full h-full object-contain pointer-events-none select-none"
+                                draggable={false}
                               />
-                            );
-                          })}
+                              
+                              {/* Static Station Nodes */}
+                              {stations?.map((station) => {
+                                const coords = StationCoordinates[station.name];
+                                if (!coords) return null;
+                                const isSelected = selectedStation?.id === station.id;
+                                const color = getLineColor(station.line);
+                                const crowdColor = getCrowdColor(station.crowdLevel);
 
-                          {/* Live Train Overlay */}
-                          {showLiveTrains && trainStates.map((train) => {
-                            const lineStations = train.line === "purple" ? purpleStations : greenStations;
-                            if (lineStations.length < 2) return null;
-                            const [x, y] = interpolatePosition(lineStations, train.positionIndex);
-                            const color = train.line === "purple" ? "#7B2D8E" : "#00A651";
-                            return (
-                              <div
-                                key={train.id}
-                                className="absolute flex items-center justify-center rounded-full text-white text-[10px] font-bold shadow-[0_2px_6px_rgba(0,0,0,0.4)] transition-all duration-3000 ease-linear z-50 pointer-events-none"
-                                style={{
-                                  left: `${x}%`,
-                                  top: `${y}%`,
-                                  width: '24px',
-                                  height: '24px',
-                                  backgroundColor: color,
-                                  border: '2px solid #fff',
-                                  transform: 'translate(-50%, -50%)',
-                                }}
-                              >
-                                {train.direction === 1 ? '▶' : '◀'}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </TransformComponent>
-                    </>
-                  )}
-                </TransformWrapper>
+                                return (
+                                  <div
+                                    key={station.id}
+                                    className={`absolute flex items-center justify-center rounded-full cursor-pointer transition-transform hover:scale-150 z-40 ${isSelected ? 'ring-2 ring-white ring-offset-2 ring-offset-background scale-150' : 'scale-100'}`}
+                                    style={{
+                                      left: `${coords.x}%`,
+                                      top: `${coords.y}%`,
+                                      width: '12px',
+                                      height: '12px',
+                                      backgroundColor: color,
+                                      border: `2px solid ${crowdColor}`,
+                                      transform: 'translate(-50%, -50%)',
+                                    }}
+                                    onClick={() => setSelectedStation(station)}
+                                    title={`${station.name} (${station.crowdLevel} crowd)`}
+                                  />
+                                );
+                              })}
+
+                              {/* Live Train Overlay */}
+                              {showLiveTrains && trainStates.map((train) => {
+                                const lineStations = train.line === "purple" ? purpleStations : greenStations;
+                                if (lineStations.length < 2) return null;
+                                const [x, y] = interpolatePosition(lineStations, train.positionIndex);
+                                const color = train.line === "purple" ? "#7B2D8E" : "#00A651";
+                                return (
+                                  <div
+                                    key={train.id}
+                                    className="absolute flex items-center justify-center rounded-full text-white text-[10px] font-bold shadow-[0_2px_6px_rgba(0,0,0,0.4)] transition-all duration-3000 ease-linear z-50 pointer-events-none"
+                                    style={{
+                                      left: `${x}%`,
+                                      top: `${y}%`,
+                                      width: '24px',
+                                      height: '24px',
+                                      backgroundColor: color,
+                                      border: '2px solid #fff',
+                                      transform: 'translate(-50%, -50%)',
+                                    }}
+                                  >
+                                    {train.direction === 1 ? '▶' : '◀'}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </TransformComponent>
+                        </>
+                      )}
+                    </TransformWrapper>
+                  </div>
+                ) : (
+                  <div className="w-full h-full z-0 relative bg-background">
+                    <MapContainer
+                      center={[12.978, 77.585]}
+                      zoom={11}
+                      minZoom={10}
+                      maxBounds={[
+                        [12.6, 77.3], // South-West
+                        [13.2, 77.8]  // North-East
+                      ]}
+                      maxBoundsViscosity={1.0}
+                      style={{ height: "100%", width: "100%", zIndex: 0 }}
+                      zoomControl={false}
+                    >
+                      <TileLayer
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                      />
+                      
+                      {/* Draw actual track geometries */}
+                      {metroTracks.purple.map((positions, idx) => (
+                        <Polyline 
+                          key={`purple-track-${idx}`}
+                          positions={positions as [number, number][]} 
+                          color="#7B2D8E" 
+                          weight={5} 
+                          opacity={0.8} 
+                        />
+                      ))}
+                      {metroTracks.green.map((positions, idx) => (
+                        <Polyline 
+                          key={`green-track-${idx}`}
+                          positions={positions as [number, number][]} 
+                          color="#00A651" 
+                          weight={5} 
+                          opacity={0.8} 
+                        />
+                      ))}
+
+                      {stations?.map((station) => {
+                        const isSelected = selectedStation?.id === station.id;
+                        const color = getLineColor(station.line);
+                        const crowdColor = getCrowdColor(station.crowdLevel);
+                        
+                        return (
+                          <Marker
+                            key={station.id}
+                            position={[station.lat, station.lng]}
+                            icon={createStationIcon(color, crowdColor, isSelected)}
+                            eventHandlers={{
+                              click: () => setSelectedStation(station),
+                            }}
+                          >
+                            <Popup>
+                              <div className="text-sm font-semibold">{station.name}</div>
+                              <div className="text-xs capitalize text-muted-foreground">{station.line} Line</div>
+                              <div className="text-xs">Crowd level: <span className="font-medium">{station.crowdLevel}</span></div>
+                            </Popup>
+                          </Marker>
+                        );
+                      })}
+
+                      {/* Live Train Overlay geographic bounds */}
+                      {showLiveTrains && trainStates.map((train) => {
+                        const lineStations = train.line === "purple" ? purpleStations : greenStations;
+                        if (lineStations.length < 2) return null;
+                        
+                        // We need a geographical interpolation for true live positions
+                        const idx = Math.floor(train.positionIndex);
+                        const frac = train.positionIndex - idx;
+                        const s1 = lineStations[idx];
+                        const s2 = lineStations[idx + 1];
+                        
+                        if (!s1 || !s2) return null;
+                        
+                        const lat = s1.lat + (s2.lat - s1.lat) * frac;
+                        const lng = s1.lng + (s2.lng - s1.lng) * frac;
+                        const color = train.line === "purple" ? "#7B2D8E" : "#00A651";
+
+                        const trainIcon = L.divIcon({
+                          className: 'custom-train-marker',
+                          html: `<div style="
+                            width: 20px;
+                            height: 20px;
+                            background-color: ${color};
+                            border: 2px solid white;
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            color: white;
+                            font-size: 8px;
+                            font-weight: bold;
+                            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+                            transition: all 3s linear;
+                          ">${train.direction === 1 ? '▶' : '◀'}</div>`,
+                          iconSize: [20, 20],
+                          iconAnchor: [10, 10],
+                        });
+
+                        return (
+                          <Marker 
+                            key={`train-${train.id}`} 
+                            position={[lat, lng]} 
+                            icon={trainIcon} 
+                            zIndexOffset={1000} // Keep trains on top of stations
+                          />
+                        );
+                      })}
+                    </MapContainer>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

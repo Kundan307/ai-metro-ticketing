@@ -38,14 +38,7 @@ import AccessibilityPage from "@/pages/accessibility";
 import ScannerPage from "@/pages/scanner";
 import AdminDashboard from "@/pages/admin-dashboard";
 
-function ThemeToggle() {
-  const { theme, toggleTheme } = useTheme();
-  return (
-    <Button size="icon" variant="ghost" onClick={toggleTheme} data-testid="button-theme-toggle">
-      {theme === "dark" ? <SunIcon className="w-4 h-4" /> : <MoonIcon className="w-4 h-4" />}
-    </Button>
-  );
-}
+
 
 function LanguageSelector() {
   const { language, setLanguage } = useTranslation();
@@ -119,7 +112,6 @@ function HeaderBar() {
         <WeatherWidget />
         <div className="flex items-center gap-1.5 border-l border-border/40 pl-3 ml-1">
           <LanguageSelector />
-          <ThemeToggle />
         </div>
       </div>
     </header>

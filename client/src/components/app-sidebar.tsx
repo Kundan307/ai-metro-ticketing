@@ -67,7 +67,7 @@ export function AppSidebar() {
     .slice(0, 2) ?? "U";
 
   return (
-    <Sidebar className="border-r border-white/5 bg-background/80 backdrop-blur-xl">
+    <Sidebar className="border-r border-white/10 bg-background/80 backdrop-blur-xl">
       <SidebarHeader className="p-6 pb-4">
         <Link href="/" data-testid="link-home-logo">
           <div className="flex items-center gap-3 active:scale-95 transition-transform group">
@@ -116,9 +116,9 @@ export function AppSidebar() {
                     data-active={location === item.url}
                   >
                     <Link href={item.url}>
-                      <a data-testid={`link-nav-${item.titleKey}`} className="flex items-center gap-2">
-                        <item.icon className="w-4 h-4" />
-                        <span>{t(item.titleKey)}</span>
+                      <a data-testid={`link-nav-${item.titleKey}`} className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all hover:bg-white/5 hover:text-primary data-[active=true]:bg-white/10 data-[active=true]:backdrop-blur-md data-[active=true]:border data-[active=true]:border-white/10 data-[active=true]:shadow-lg data-[active=true]:text-primary">
+                        <item.icon className="w-5 h-5" />
+                        <span className="font-semibold">{t(item.titleKey)}</span>
                       </a>
                     </Link>
                   </SidebarMenuButton>
@@ -140,7 +140,7 @@ export function AppSidebar() {
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild data-active={location === "/admin"}>
                     <Link href="/admin">
-                      <a data-testid="link-nav-admin" className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all hover:bg-white/5 hover:text-primary data-[active=true]:bg-primary/20 data-[active=true]:text-primary data-[active=true]:shadow-glow-primary">
+                      <a data-testid="link-nav-admin" className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all hover:bg-white/5 hover:text-primary data-[active=true]:bg-white/10 data-[active=true]:backdrop-blur-md data-[active=true]:border data-[active=true]:border-white/10 data-[active=true]:shadow-lg data-[active=true]:text-primary">
                         <ShieldCheckIcon className="w-5 h-5" />
                         <span className="font-semibold">{t("sidebar.adminDashboard")}</span>
                       </a>
@@ -163,9 +163,9 @@ export function AppSidebar() {
                       data-active={location === item.url}
                     >
                       <Link href={item.url}>
-                        <a data-testid={`link-nav-${item.titleKey}`} className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all hover:bg-white/5 hover:text-primary data-[active=true]:bg-primary/20 data-[active=true]:text-primary data-[active=true]:shadow-glow-primary">
-                           <item.icon className="w-5 h-5" />
-                           <span className="font-semibold">{t(item.titleKey)}</span>
+                        <a data-testid={`link-nav-${item.titleKey}`} className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all hover:bg-white/5 hover:text-primary data-[active=true]:bg-white/10 data-[active=true]:backdrop-blur-md data-[active=true]:border data-[active=true]:border-white/10 data-[active=true]:shadow-lg data-[active=true]:text-primary">
+                          <item.icon className="w-5 h-5" />
+                          <span className="font-semibold">{t(item.titleKey)}</span>
                         </a>
                       </Link>
                     </SidebarMenuButton>

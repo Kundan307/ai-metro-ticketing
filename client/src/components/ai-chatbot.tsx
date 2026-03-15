@@ -3,8 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   MessageCircleIcon, SendIcon, XIcon, BotIcon, UserIcon, TrashIcon,
-  Loader2Icon
+  Loader2Icon, TicketIcon, MapPinIcon, TrendingUpIcon, CheckCircle2Icon,
+  MicIcon, MicOffIcon, Volume2Icon, VolumeXIcon
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/queryClient";
 import { useTranslation } from "@/components/language-provider";
 
@@ -13,6 +17,14 @@ interface ChatMessage {
   content: string;
   suggestions?: string[];
   action?: string;
+  bookingDraft?: {
+    sourceId: number;
+    sourceName: string;
+    destId: number;
+    destName: string;
+    count: number;
+    totalFare: number;
+  };
 }
 
 const INITIAL_SUGGESTIONS = [
@@ -36,7 +48,75 @@ function TypingDots() {
   );
 }
 
-function MessageBubble({ msg, onSuggestion }: { msg: ChatMessage; onSuggestion: (s: string) => void }) {
+function BookingCard({ draft, onConfirm, onCancel, isLoading }: { 
+  draft: NonNullable<ChatMessage["bookingDraft"]>, 
+  onConfirm: () => void, 
+  onCancel: () => void,
+  isLoading: boolean
+}) {
+  return (
+    <div className="mt-3 p-3.5 rounded-xl border border-primary/20 bg-primary/5 flex flex-col gap-3">
+      <div className="flex items-center gap-2 text-primary">
+        <TicketIcon className="w-4 h-4" />
+        <span className="text-xs font-semibold uppercase tracking-wider">Booking Preview</span>
+      </div>
+      
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[10px] text-muted-foreground uppercase">From</span>
+          <span className="text-sm font-medium line-clamp-1">{draft.sourceName}</span>
+        </div>
+        <div className="flex flex-col items-center px-1">
+          <TrendingUpIcon className="w-3.5 h-3.5 text-muted-foreground/40 rotate-90" />
+        </div>
+        <div className="flex flex-col gap-0.5 text-right">
+          <span className="text-[10px] text-muted-foreground uppercase">To</span>
+          <span className="text-sm font-medium line-clamp-1">{draft.destName}</span>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between pt-2 border-t border-primary/10">
+        <div className="flex flex-col">
+          <span className="text-[10px] text-muted-foreground uppercase">Passengers</span>
+          <span className="text-sm font-semibold">{draft.count}</span>
+        </div>
+        <div className="flex flex-col text-right">
+          <span className="text-[10px] text-muted-foreground uppercase">Total Fare</span>
+          <span className="text-lg font-bold text-primary">₹{draft.totalFare}</span>
+        </div>
+      </div>
+
+      <div className="flex gap-2 mt-1">
+        <Button 
+          size="sm" 
+          variant="outline" 
+          className="flex-1 h-8 text-xs" 
+          onClick={onCancel}
+          disabled={isLoading}
+        >
+          Cancel
+        </Button>
+        <Button 
+          size="sm" 
+          className="flex-1 h-8 text-xs gap-1.5" 
+          onClick={onConfirm}
+          disabled={isLoading}
+        >
+          {isLoading ? <Loader2Icon className="w-3 h-3 animate-spin" /> : <CheckCircle2Icon className="w-3 h-3" />}
+          Confirm Booking
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function MessageBubble({ msg, onSuggestion, onConfirmBooking, onCancelBooking, isBookingLoading }: { 
+  msg: ChatMessage; 
+  onSuggestion: (s: string) => void;
+  onConfirmBooking: (draft: NonNullable<ChatMessage["bookingDraft"]>) => void;
+  onCancelBooking: () => void;
+  isBookingLoading: boolean;
+}) {
   const isUser = msg.role === "user";
   const lines = msg.content.split("\n");
 
@@ -47,12 +127,12 @@ function MessageBubble({ msg, onSuggestion }: { msg: ChatMessage; onSuggestion: 
           <BotIcon className="w-3 h-3 text-primary" />
         </div>
       )}
-      <div className={`flex flex-col gap-1.5 max-w-[80%] ${isUser ? "items-end" : "items-start"}`}>
+      <div className={`flex flex-col gap-1.5 max-w-[85%] ${isUser ? "items-end" : "items-start"}`}>
         <div
           className={`rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed shadow-sm ${
             isUser
               ? "bg-primary text-primary-foreground rounded-tr-sm"
-              : "bg-muted/80 text-foreground rounded-tl-sm"
+              : "bg-muted/80 text-foreground rounded-tl-sm shadow-inner-white"
           }`}
         >
           {lines.map((line, i) => {
@@ -70,6 +150,15 @@ function MessageBubble({ msg, onSuggestion }: { msg: ChatMessage; onSuggestion: 
             }
             return <p key={i} className={i > 0 ? "mt-0.5" : ""}>{trimmed}</p>;
           })}
+
+          {msg.bookingDraft && (
+            <BookingCard 
+              draft={msg.bookingDraft} 
+              onConfirm={() => onConfirmBooking(msg.bookingDraft!)}
+              onCancel={onCancelBooking}
+              isLoading={isBookingLoading}
+            />
+          )}
         </div>
         {!isUser && msg.suggestions && msg.suggestions.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-0.5">
@@ -97,6 +186,7 @@ function MessageBubble({ msg, onSuggestion }: { msg: ChatMessage; onSuggestion: 
 
 export function AIChatbot() {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [hasUnread, setHasUnread] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -108,6 +198,14 @@ export function AIChatbot() {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isBookingLoading, setIsBookingLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [isMuted, setIsMuted] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("chat-muted") === "true";
+    }
+    return false;
+  });
   
   const [conversationState, setConversationState] = useState<{
     intent?: string;
@@ -118,6 +216,55 @@ export function AIChatbot() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.continuous = false;
+        recognitionRef.current.interimResults = false;
+        recognitionRef.current.lang = "en-IN";
+
+        recognitionRef.current.onresult = (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          setInput(transcript);
+          sendMessage(transcript);
+          setIsListening(false);
+        };
+
+        recognitionRef.current.onerror = () => {
+          setIsListening(false);
+        };
+
+        recognitionRef.current.onend = () => {
+          setIsListening(false);
+        };
+      }
+    }
+  }, []);
+
+  const speak = (text: string) => {
+    if (isMuted || !("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage && lastMessage.role === "assistant" && isOpen && !isLoading) {
+      speak(lastMessage.content);
+    }
+  }, [messages, isOpen, isLoading, isMuted]);
+
+  useEffect(() => {
+    localStorage.setItem("chat-muted", isMuted.toString());
+    if (isMuted) window.speechSynthesis.cancel();
+  }, [isMuted]);
 
   useEffect(() => {
     if (isOpen) messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -155,6 +302,21 @@ export function AIChatbot() {
       setMessages((prev) => [...prev, botMsg]);
       setConversationState(data.nextState || {});
       
+      if (data.bookingDraft) {
+        // If we get a booking draft, we might want to clear previous unconfirmed drafts
+        setMessages((prev) => prev.map(m => m.bookingDraft ? { ...m, bookingDraft: undefined } : m));
+        
+        const bookingMsg: ChatMessage = {
+          role: "assistant",
+          content: `I've prepared a booking for you from ${data.bookingDraft.sourceName} to ${data.bookingDraft.destName}. Please confirm the details below.`,
+          bookingDraft: data.bookingDraft,
+          suggestions: ["Cancel booking", "Change count to 2"]
+        };
+        setMessages((prev) => [...prev, bookingMsg]);
+        // Speak booking info specifically
+        speak(`I've prepared a booking from ${data.bookingDraft.sourceName} to ${data.bookingDraft.destName}. Please confirm the details.`);
+      }
+      
       if (!isOpen) setHasUnread(true);
       
     } catch {
@@ -164,6 +326,73 @@ export function AIChatbot() {
       ]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleConfirmBooking = async (draft: NonNullable<ChatMessage["bookingDraft"]>) => {
+    setIsBookingLoading(true);
+    try {
+      const res = await apiRequest("POST", "/api/tickets", {
+        sourceStationId: draft.sourceId,
+        destStationId: draft.destId,
+        passengers: draft.count,
+        paymentMethod: "wallet"
+      });
+      
+      if (res.ok) {
+        toast({
+          title: "Ticket Booked!",
+          description: `Successfully booked ${draft.count} ticket(s) to ${draft.destName}.`,
+        });
+        
+        // Add success message to chat
+        setMessages((prev) => [
+          ...prev.map(m => m.bookingDraft ? { ...m, bookingDraft: undefined } : m),
+          { 
+            role: "assistant", 
+            content: `Great! I've successfully booked your ticket from ${draft.sourceName} to ${draft.destName}. You can find it in your "My Tickets" section. Is there anything else I can help with?` 
+          }
+        ]);
+        
+        // Refresh wallet balance and tickets
+        queryClient.invalidateQueries({ queryKey: ["/api/tickets/my"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/user/me"] });
+      } else {
+        const error = await res.json();
+        throw new Error(error.message || "Booking failed");
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Booking Failed",
+        description: error.message,
+      });
+    } finally {
+      setIsBookingLoading(false);
+    }
+  };
+
+  const handleCancelBooking = () => {
+    setMessages((prev) => 
+      prev.map(m => m.bookingDraft ? { ...m, bookingDraft: undefined } : m)
+    );
+    setMessages((prev) => [
+      ...prev,
+      { role: "assistant", content: "No problem! Booking cancelled. What else can I help you with?" }
+    ]);
+    speak("Booking cancelled. What else can I help you with?");
+  };
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+    } else {
+      try {
+        recognitionRef.current?.start();
+        setIsListening(true);
+      } catch (e) {
+        console.error("Speech recognition failed to start", e);
+      }
     }
   };
 
@@ -208,27 +437,34 @@ export function AIChatbot() {
           style={{ width: "360px", height: "540px" }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between gap-2 px-4 py-3 border-b bg-primary flex-shrink-0">
+          <div className="flex items-center justify-between gap-2 px-4 py-3 border-b bg-[#8ae2ff] flex-shrink-0">
             <div className="flex items-center gap-2.5">
-              <div className="relative w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-                <BotIcon className="w-4 h-4 text-white" />
-                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-400 border-2 border-primary" />
+              <div className="relative w-8 h-8 rounded-full bg-black/10 flex items-center justify-center flex-shrink-0">
+                <BotIcon className="w-4 h-4 text-black" />
+                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-[#8ae2ff]" />
               </div>
               <div>
-                <p className="text-sm font-semibold leading-tight text-white shadow-sm">
+                <p className="text-sm font-bold leading-tight text-black">
                   SmartAI Assistant
                 </p>
-                <div className="flex items-center gap-1 mt-0.5 text-white/80">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 opacity-80" />
-                  <span className="text-[10px] leading-tight">Online</span>
+                <div className="flex items-center gap-1 mt-0.5 text-black/70">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                  <span className="text-[10px] font-medium leading-tight text-black/70">Online</span>
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-1 text-white/80">
+            <div className="flex items-center gap-1 text-black/60">
+              <button
+                onClick={() => setIsMuted(!isMuted)}
+                className="p-1.5 rounded-lg hover:bg-black/5 hover:text-black transition-colors"
+                aria-label={isMuted ? "Unmute" : "Mute"}
+              >
+                {isMuted ? <VolumeXIcon className="w-4 h-4" /> : <Volume2Icon className="w-4 h-4" />}
+              </button>
               {messageCount > 0 && (
                 <button
                   onClick={clearChat}
-                  className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
+                  className="p-1.5 rounded-lg hover:bg-black/5 hover:text-black transition-colors"
                   aria-label="Clear chat"
                 >
                   <TrashIcon className="w-4 h-4" />
@@ -236,7 +472,7 @@ export function AIChatbot() {
               )}
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
+                className="p-1.5 rounded-lg hover:bg-black/5 hover:text-black transition-colors"
                 aria-label="Close chat"
               >
                 <XIcon className="w-4 h-4" />
@@ -250,6 +486,9 @@ export function AIChatbot() {
                 key={i}
                 msg={msg}
                 onSuggestion={(s) => sendMessage(s)}
+                onConfirmBooking={handleConfirmBooking}
+                onCancelBooking={handleCancelBooking}
+                isBookingLoading={isBookingLoading}
               />
             ))}
             {isLoading && (
@@ -266,12 +505,23 @@ export function AIChatbot() {
           </div>
 
           <div className="flex items-center gap-2 px-3 py-3 border-t bg-card flex-shrink-0 relative">
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={toggleListening}
+              className={`h-10 w-10 rounded-xl flex-shrink-0 transition-colors ${
+                isListening ? "bg-red-500/10 text-red-500 animate-pulse" : "bg-muted/40 text-muted-foreground hover:text-primary hover:bg-primary/10"
+              }`}
+              disabled={isLoading}
+            >
+              {isListening ? <MicOffIcon className="w-4 h-4" /> : <MicIcon className="w-4 h-4" />}
+            </Button>
             <Input
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Type your message..."
+              placeholder={isListening ? "Listening..." : "Type your message..."}
               disabled={isLoading}
               className="flex-1 text-sm rounded-xl bg-muted/40 border-border/60 min-h-[40px]"
             />

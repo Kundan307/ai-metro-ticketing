@@ -5,15 +5,18 @@ import crypto from "crypto";
 export async function seedDatabase() {
   const existingCount = await storage.getStationCount();
   
-  // Force re-seed to get full station list if counts mismatch (old count was ~50, new is 69)
-  if (existingCount > 0 && existingCount !== 69) {
-    console.log(`Station count mismatch (${existingCount} vs 69). Re-seeding...`);
+  // Skip seed if already have all 68 stations
+  if (existingCount === 68) {
+    console.log("Database already has all 68 stations, skipping seed.");
+    return;
+  }
+
+  // Force re-seed if count is wrong (e.g. old data)
+  if (existingCount > 0) {
+    console.log(`Station count mismatch (${existingCount} vs 68). Re-seeding...`);
     await storage.deleteAllTickets();
     await storage.deleteAllTransactions();
     await storage.deleteAllStations();
-  } else if (existingCount === 69) {
-    console.log("Database already has all 69 stations, skipping seed.");
-    return;
   }
 
   console.log("Seeding database with Bangalore Metro stations...");

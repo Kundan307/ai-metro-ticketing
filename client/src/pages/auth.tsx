@@ -111,7 +111,7 @@ export default function AuthPage() {
   ];
 
   return (
-    <div className="flex h-screen w-full overflow-hidden">
+    <div className="flex h-screen w-full overflow-hidden no-scrollbar">
       <div className="hidden lg:flex lg:w-[480px] xl:w-[540px] flex-shrink-0 relative overflow-hidden">
         {/* Modern Mesh Gradient Background */}
         <div
@@ -195,232 +195,232 @@ export default function AuthPage() {
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-5 sm:p-8 overflow-y-auto bg-background/50 backdrop-blur-sm relative">
+      <div className="flex-1 flex items-center justify-center p-5 sm:p-8 overflow-hidden bg-background/20 backdrop-blur-sm relative">
         {/* Subtle background decoration for the right side */}
-        <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[30%] h-[30%] bg-secondary/5 blur-[100px] rounded-full pointer-events-none" />
+        <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/10 blur-[120px] rounded-full pointer-events-none" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[30%] h-[30%] bg-secondary/10 blur-[100px] rounded-full pointer-events-none" />
         
-        {/* Added background texture for empty feel */}
-        <div className="absolute inset-0 opacity-[0.05] pointer-events-none z-0" style={{
-          backgroundImage: 'url("/metro-patterns.png")',
-          backgroundSize: '400px',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'repeat',
-        }} />
-
-        <div className="w-full max-w-[400px] my-auto animate-fade-in-up">
-          <div className="text-center mb-8 lg:hidden">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary mb-4">
-              <TrainFrontIcon className="w-7 h-7 text-primary-foreground" />
-            </div>
-            <h1 className="text-xl font-bold tracking-tight" data-testid="text-auth-title-mobile">SmartAI Metro</h1>
-            <p className="text-xs text-muted-foreground mt-1">Bangalore Metro Rail Corporation</p>
-          </div>
-
-          <div className="mb-6 hidden lg:block">
-            <h1 className="text-2xl font-bold tracking-tight" data-testid="text-auth-title">
-              {isLogin ? "Welcome back" : "Get started"}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1.5">
-              {isLogin ? "Sign in to access your metro account" : "Create your account in seconds"}
-            </p>
-          </div>
-
-          <div className="lg:hidden mb-6">
-            <h2 className="text-lg font-semibold text-center" data-testid="text-auth-heading">
-              {isLogin ? "Sign In" : "Create Account"}
-            </h2>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4" data-testid="card-auth-form">
-            {!isLogin && (
-              <>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">Full Name</Label>
-                  <div className="relative">
-                    <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
-                    <Input
-                      placeholder="John Doe"
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className="pl-10 h-11 bg-background"
-                      data-testid="input-name"
-                      required
-                    />
-                  </div>
+        <div className="w-full max-w-[420px] my-auto animate-fade-in-up relative">
+          <div className="glass-card p-8 sm:p-10 rounded-[2.5rem] w-full border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.3)] relative overflow-hidden">
+            {/* Inner Glass Highlights and Orbs */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full -mr-16 -mt-16 blur-2xl" />
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-secondary/10 rounded-full -ml-12 -mb-12 blur-xl" />
+            
+            <div className="relative z-10">
+              <div className="text-center mb-8 lg:hidden">
+                <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary mb-4 shadow-lg shadow-primary/20">
+                  <TrainFrontIcon className="w-7 h-7 text-primary-foreground" />
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">Phone Number</Label>
-                  <div className="relative">
-                    <PhoneIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
-                    <Input
-                      placeholder="9876543210"
-                      value={form.phone}
-                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                      className="pl-10 h-11 bg-background"
-                      data-testid="input-phone"
-                      required
-                    />
-                  </div>
-                </div>
-              </>
-            )}
-
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-muted-foreground">Email</Label>
-              <div className="relative">
-                <MailIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
-                <Input
-                  type="email"
-                  placeholder="you@example.com"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="pl-10 h-11 bg-background"
-                  data-testid="input-email"
-                  required
-                />
+                <h1 className="text-xl font-bold tracking-tight" data-testid="text-auth-title-mobile">SmartAI Metro</h1>
+                <p className="text-xs text-muted-foreground mt-1">Bangalore Metro Rail Corporation</p>
               </div>
-            </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-muted-foreground">Password</Label>
-              <div className="relative">
-                <LockIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Enter password"
-                  value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  className="pl-10 pr-10 h-11 bg-background"
-                  data-testid="input-password"
-                  required
-                />
-                <button
-                  type="button"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/60 cursor-pointer"
-                  onClick={() => setShowPassword(!showPassword)}
-                  data-testid="button-toggle-password"
-                >
-                  {showPassword ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
-                </button>
+              <div className="mb-6 hidden lg:block">
+                <h1 className="text-2xl font-bold tracking-tight" data-testid="text-auth-title">
+                  {isLogin ? "Welcome back" : "Get started"}
+                </h1>
+                <p className="text-sm text-muted-foreground mt-1.5">
+                  {isLogin ? "Sign in to access your metro account" : "Create your account in seconds"}
+                </p>
               </div>
-            </div>
 
-            <div className="flex items-start space-x-2 pt-1">
-              <Checkbox 
-                id="privacy" 
-                checked={form.acceptedPrivacy}
-                onCheckedChange={(checked) => setForm({ ...form, acceptedPrivacy: checked === true })}
-                data-testid="checkbox-privacy"
-              />
-              <div className="grid gap-1.5 leading-none">
-                <label
-                  htmlFor="privacy"
-                  className="text-[11px] font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-muted-foreground"
-                >
-                  I agree to the{" "}
-                  <button type="button" className="text-primary hover:underline font-semibold">
-                    Privacy Policy
-                  </button>{" "}
-                  and terms of service
-                </label>
-              </div>
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full h-12 text-sm font-semibold gap-2 shadow-lg shadow-primary/20 hover:shadow-primary/30 active:scale-[0.98] transition-all"
-              disabled={isPending}
-              data-testid="button-auth-submit"
-            >
-              {isPending ? (
-                <>
-                  <Loader2Icon className="w-4 h-4 animate-spin" />
-                  Please wait...
-                </>
-              ) : (
-                <>
+              <div className="lg:hidden mb-6">
+                <h2 className="text-lg font-semibold text-center" data-testid="text-auth-heading">
                   {isLogin ? "Sign In" : "Create Account"}
-                  <ArrowRightIcon className="w-4 h-4" />
-                </>
-              )}
-            </Button>
-          </form>
-
-          {isLogin && (
-            <div className="mt-5 relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border/60" />
+                </h2>
               </div>
-              <div className="relative flex justify-center text-[11px]">
-                <span className="bg-background px-3 text-muted-foreground">or try it out</span>
-              </div>
-            </div>
-          )}
 
-          {isLogin && (
-            <div className="mt-4 space-y-2">
-              <button
-                type="button"
-                className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border/50 bg-card/50 backdrop-blur-md cursor-pointer text-left group transition-all hover:bg-card hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 active:scale-[0.99]"
-                onClick={() => fillDemo("user")}
-                data-testid="button-fill-demo"
-              >
-                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 flex-shrink-0 group-hover:scale-110 transition-transform">
-                  <ZapIcon className="w-5 h-5 text-primary" />
+              <form onSubmit={handleSubmit} className="space-y-4" data-testid="card-auth-form">
+                {!isLogin && (
+                  <>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-muted-foreground">Full Name</Label>
+                      <div className="relative">
+                        <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
+                        <Input
+                          placeholder="John Doe"
+                          value={form.name}
+                          onChange={(e) => setForm({ ...form, name: e.target.value })}
+                          className="pl-10 h-11 bg-background"
+                          data-testid="input-name"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-muted-foreground">Phone Number</Label>
+                      <div className="relative">
+                        <PhoneIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
+                        <Input
+                          placeholder="9876543210"
+                          value={form.phone}
+                          onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                          className="pl-10 h-11 bg-background"
+                          data-testid="input-phone"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground">Email</Label>
+                  <div className="relative">
+                    <MailIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
+                    <Input
+                      type="email"
+                      placeholder="you@example.com"
+                      value={form.email}
+                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                      className="pl-10 h-11 bg-background"
+                      data-testid="input-email"
+                      required
+                    />
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm font-bold block group-hover:text-primary transition-colors">Quick Access Demo</span>
-                  <span className="text-[11px] text-muted-foreground block mt-0.5">
-                    Pre-loaded with ₹2,500 balance & tickets
-                  </span>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground">Password</Label>
+                  <div className="relative">
+                    <LockIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter password"
+                      value={form.password}
+                      onChange={(e) => setForm({ ...form, password: e.target.value })}
+                      className="pl-10 pr-10 h-11 bg-background"
+                      data-testid="input-password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/60 cursor-pointer"
+                      onClick={() => setShowPassword(!showPassword)}
+                      data-testid="button-toggle-password"
+                    >
+                      {showPassword ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
-                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1">
-                   <ArrowRightIcon className="w-4 h-4 text-primary" />
+
+                <div className="flex items-start space-x-2 pt-1">
+                  <Checkbox 
+                    id="privacy" 
+                    checked={form.acceptedPrivacy}
+                    onCheckedChange={(checked) => setForm({ ...form, acceptedPrivacy: checked === true })}
+                    data-testid="checkbox-privacy"
+                  />
+                  <div className="grid gap-1.5 leading-none">
+                    <label
+                      htmlFor="privacy"
+                      className="text-[11px] font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-muted-foreground"
+                    >
+                      I agree to the{" "}
+                      <button type="button" className="text-primary hover:underline font-semibold">
+                        Privacy Policy
+                      </button>{" "}
+                      and terms of service
+                    </label>
+                  </div>
                 </div>
-              </button>
-              
-              <div className="mt-2">
-                <button
-                  type="button"
-                  className="w-full flex items-center justify-center gap-2 p-2.5 rounded-lg border border-border bg-card cursor-pointer group transition-colors hover:bg-muted/50"
-                  onClick={() => fillDemo("admin")}
-                  data-testid="button-fill-demo-admin"
+
+                <Button
+                  type="submit"
+                  className="w-full h-12 text-sm font-semibold gap-2 shadow-lg shadow-primary/20 hover:shadow-primary/30 active:scale-[0.98] transition-all"
+                  disabled={isPending}
+                  data-testid="button-auth-submit"
                 >
-                  <ShieldCheckIcon className="w-4 h-4 text-red-500" />
-                  <span className="text-xs font-semibold">Admin Login</span>
-                </button>
+                  {isPending ? (
+                    <>
+                      <Loader2Icon className="w-4 h-4 animate-spin" />
+                      Please wait...
+                    </>
+                  ) : (
+                    <>
+                      {isLogin ? "Sign In" : "Create Account"}
+                      <ArrowRightIcon className="w-4 h-4" />
+                    </>
+                  )}
+                </Button>
+              </form>
+
+              {isLogin && (
+                <div className="mt-5 relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-border/60" />
+                  </div>
+                  <div className="relative flex justify-center text-[11px]">
+                    <span className="bg-background px-3 text-muted-foreground">or try it out</span>
+                  </div>
+                </div>
+              )}
+
+              {isLogin && (
+                <div className="mt-4 space-y-2">
+                  <button
+                    type="button"
+                    className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border/50 bg-card/50 backdrop-blur-md cursor-pointer text-left group transition-all hover:bg-card hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 active:scale-[0.99]"
+                    onClick={() => fillDemo("user")}
+                    data-testid="button-fill-demo"
+                  >
+                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 flex-shrink-0 group-hover:scale-110 transition-transform">
+                      <ZapIcon className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm font-bold block group-hover:text-primary transition-colors">Quick Access Demo</span>
+                      <span className="text-[11px] text-muted-foreground block mt-0.5">
+                        Pre-loaded with ₹2,500 balance & tickets
+                      </span>
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1">
+                       <ArrowRightIcon className="w-4 h-4 text-primary" />
+                    </div>
+                  </button>
+                  
+                  <div className="mt-2">
+                    <button
+                      type="button"
+                      className="w-full flex items-center justify-center gap-2 p-2.5 rounded-lg border border-border bg-card cursor-pointer group transition-colors hover:bg-muted/50"
+                      onClick={() => fillDemo("admin")}
+                      data-testid="button-fill-demo-admin"
+                    >
+                      <ShieldCheckIcon className="w-4 h-4 text-red-500" />
+                      <span className="text-xs font-semibold">Admin Login</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-6 text-center">
+                <p className="text-sm text-muted-foreground">
+                  {isLogin ? "New to SmartAI Metro?" : "Already have an account?"}{" "}
+                  <button
+                    type="button"
+                    className="font-semibold text-primary cursor-pointer"
+                    onClick={() => setIsLogin(!isLogin)}
+                    data-testid="button-toggle-auth"
+                  >
+                    {isLogin ? "Create account" : "Sign in"}
+                  </button>
+                </p>
               </div>
-            </div>
-          )}
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              {isLogin ? "New to SmartAI Metro?" : "Already have an account?"}{" "}
-              <button
-                type="button"
-                className="font-semibold text-primary cursor-pointer"
-                onClick={() => setIsLogin(!isLogin)}
-                data-testid="button-toggle-auth"
-              >
-                {isLogin ? "Create account" : "Sign in"}
-              </button>
-            </p>
-          </div>
+              {!isLogin && (
+                <div className="mt-4 flex items-center justify-center gap-2 p-3 rounded-lg bg-chart-2/5 border border-chart-2/10">
+                  <TicketIcon className="w-3.5 h-3.5 text-chart-2" />
+                  <p className="text-xs text-muted-foreground">
+                    Get <span className="font-semibold text-chart-2">₹500 bonus credits</span> on signup
+                  </p>
+                </div>
+              )}
 
-          {!isLogin && (
-            <div className="mt-4 flex items-center justify-center gap-2 p-3 rounded-lg bg-chart-2/5 border border-chart-2/10">
-              <TicketIcon className="w-3.5 h-3.5 text-chart-2" />
-              <p className="text-xs text-muted-foreground">
-                Get <span className="font-semibold text-chart-2">₹500 bonus credits</span> on signup
+              <p className="mt-8 text-center text-[10px] text-muted-foreground/60">
+                BMRCL SmartAI Metro Ticketing System
               </p>
             </div>
-          )}
-
-          <p className="mt-6 text-center text-[11px] text-muted-foreground/50">
-            BMRCL SmartAI Metro Ticketing System
-          </p>
+          </div>
         </div>
       </div>
     </div>

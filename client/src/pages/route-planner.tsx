@@ -227,10 +227,51 @@ export default function RoutePlanner() {
           <CardContent className="pt-5 pb-5 space-y-3">
             {/* From Input */}
             <div className="space-y-1.5 relative">
-              <Label className="text-xs font-medium flex items-center gap-1.5">
-                <CircleDotIcon className="w-3 h-3 text-green-500" />
-                Where are you?
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-medium flex items-center gap-1.5">
+                  <CircleDotIcon className="w-3 h-3 text-green-500" />
+                  Where are you?
+                </Label>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-6 text-[10px] px-2 text-primary hover:text-primary/80 hover:bg-primary/10 transition-colors"
+                  onClick={() => {
+                    if ("geolocation" in navigator) {
+                      setFromInput("📍 Locating...");
+                      navigator.geolocation.getCurrentPosition(
+                        async (position) => {
+                          const { latitude, longitude } = position.coords;
+                          try {
+                            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`, {
+                              headers: { "Accept-Language": "en" }
+                            });
+                            if (res.ok) {
+                              const data = await res.json();
+                              // Try to find the most meaningful local name
+                              const placeName = data.address.suburb || data.address.neighbourhood || data.address.city_district || data.address.town || "Current Location";
+                              setFromInput(`📍 ${placeName}`);
+                            } else {
+                              setFromInput("📍 Current Location");
+                            }
+                          } catch (e) {
+                            setFromInput("📍 Current Location");
+                          }
+                          setFromGeocodeQuery(`${latitude},${longitude}`);
+                          setShowFromSugg(false);
+                        },
+                        (error) => {
+                          console.error("Error getting location: ", error);
+                          setFromInput("");
+                        }
+                      );
+                    }
+                  }}
+                >
+                  <LocateFixedIcon className="w-3 h-3 mr-1" />
+                  Locate Me
+                </Button>
+              </div>
               <Input
                 placeholder="e.g., Koramangala, HSR Layout, Whitefield..."
                 value={fromInput}

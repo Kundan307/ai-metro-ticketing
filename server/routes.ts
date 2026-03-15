@@ -6,6 +6,7 @@ import { registerSchema, loginSchema, bookTicketSchema, topUpSchema, withdrawSch
 import QRCode from "qrcode";
 import crypto from "crypto";
 import memorystore from "memorystore";
+import { assistantModel, insightsModel } from "./lib/gemini";
 
 const MemoryStore = memorystore(session);
 
@@ -51,8 +52,9 @@ function getDemandLevel(hour: number, crowdLevel: string): string {
 }
 
 function getPricingMultiplier(demandLevel: string): number {
-  if (demandLevel === "high") return 1.20;
-  if (demandLevel === "medium") return 1.10;
+  if (demandLevel === "high") return 1.10;
+  if (demandLevel === "medium") return 1.05;
+  if (demandLevel === "low") return 0.95;
   return 1.00;
 }
 
@@ -60,12 +62,12 @@ function getRecommendation(demandLevel: string): string {
   if (demandLevel === "high") {
     const offPeakHours = [11, 12, 13, 14, 15];
     const suggestedHour = offPeakHours[Math.floor(Math.random() * offPeakHours.length)];
-    return `High demand detected. Consider traveling at ${suggestedHour}:00 for lower fares and less crowding.`;
+    return `High demand detected. Surge pricing of 10% applied. Consider traveling at ${suggestedHour}:00 for lower fares.`;
   }
   if (demandLevel === "medium") {
-    return `Moderate demand. Off-peak hours (11 AM - 3 PM) offer better rates.`;
+    return `Moderate demand. A slight 5% surge is applied. Off-peak hours (11 AM - 3 PM) offer better rates.`;
   }
-  return `Low demand - great time to travel! You're getting the best fare.`;
+  return `Low demand - great time to travel! Enjoy a 5% discount on your fare.`;
 }
 
 function calculateBaseFare(sourceOrder: number, destOrder: number): number {
@@ -89,7 +91,7 @@ export async function registerRoutes(
     })
   );
 
-  // ── Rule-Based Text Assistant (No API Needed) ──
+  // ── Gemini-Powered AI Assistant ──
   app.post("/api/assistant", async (req, res) => {
     try {
       const { message, conversationState } = req.body;
@@ -98,81 +100,79 @@ export async function registerRoutes(
       }
 
       const allStations = await storage.getAllStations();
-      const msgLower = message.toLowerCase();
+      const stationContext = allStations.map(s => `${s.name} (${s.line} line, ${s.crowdLevel} crowd)`).join(", ");
       
-      let aiResult = {
-        reply: "I am the SmartAI Metro Assistant. How can I help you today?",
-        suggestions: ["Next train timing", "Plan a route", "Book a ticket", "Crowd levels"],
-        action: "none",
-        nextState: conversationState || {}
-      };
+      const chat = assistantModel.startChat({
+        history: (req.session.chatHistory || []).map(m => ({
+          role: m.role === "assistant" ? "model" : "user",
+          parts: [{ text: m.content }],
+        })),
+      });
 
-      // 1. Check for Greetings
-      if (msgLower.match(/\b(hi|hello|hey|greetings)\b/)) {
-        aiResult.reply = "Hello! Welcome to Bangalore Namma Metro. Are you looking to book a ticket, check timings, or see crowd levels?";
+      const prompt = `User message: ${message}\nContext: ${stationContext}\n\nRespond as a helpful metro assistant. Be very brief (max 2 sentences). Use only plain text. Do NOT include any JSON.`;
       
-      // 2. Check for Crowd Levels
-      } else if (msgLower.includes("crowd") || msgLower.includes("busy")) {
-        const purpleCrowd = allStations.filter(s => s.line === "purple" && s.crowdLevel === "high").length;
-        const greenCrowd = allStations.filter(s => s.line === "green" && s.crowdLevel === "high").length;
-        aiResult.reply = `Right now, the Purple Line has ${purpleCrowd} busy stations and the Green Line has ${greenCrowd} busy stations. Majestic is generally quite busy.`;
-        aiResult.suggestions = ["Book a ticket instead"];
-        
-      // 3. Check for Timings
-      } else if (msgLower.includes("time") || msgLower.includes("next train") || msgLower.includes("hours")) {
-        aiResult.reply = "Metro trains operate from 5:00 AM to 11:00 PM daily. Trains run every 5-10 minutes depending on peak hours.";
+      const result = await chat.sendMessage(prompt);
+      const replyWithMarker = result.response.text();
       
-      // 4. Check for Pricing/Fares
-      } else if (msgLower.includes("price") || msgLower.includes("fare") || msgLower.includes("cost") || msgLower.includes("ticket price")) {
-        aiResult.reply = "The base fare is ₹10 for the first 2 stations, plus ₹5 per station after that. Maximum fare is ~₹60. Surge pricing (up to 20%) applies during peak hours (8-10 AM, 5-7 PM).";
+      // Separate the clean reply from any booking marker
+      let reply = replyWithMarker;
+      let bookingDraft = null;
       
-      // 5. Check for Ticket Booking
-      } else if (msgLower.includes("book") || msgLower.includes("ticket")) {
-        aiResult.reply = "Sure! I can help you book a ticket. Where would you like to depart from and where are you going?";
-        aiResult.action = "none";
-        
-      // 6. Station Search / Route parsing (very basic)
-      } else {
-        // Attempt to find source/destination from the message if they mentioned stations
-        let foundStations = [];
-        for (const station of allStations) {
-          if (msgLower.includes(station.name.toLowerCase())) {
-            foundStations.push(station);
+      const markerMatch = replyWithMarker.match(/\[\[BOOKING_INTENT:\s*({.*?})\s*\]\]/);
+      if (markerMatch) {
+        try {
+          const intentData = JSON.parse(markerMatch[1]);
+          reply = replyWithMarker.replace(markerMatch[0], "").trim();
+          
+          const allStations = await storage.getAllStations();
+          const sourceStation = allStations.find(s => 
+            s.name.toLowerCase().includes(intentData.source.toLowerCase())
+          );
+          const destStation = allStations.find(s => 
+            s.name.toLowerCase().includes(intentData.dest.toLowerCase())
+          );
+          
+          if (sourceStation && destStation) {
+            const baseFare = calculateBaseFare(sourceStation.orderIndex, destStation.orderIndex);
+            const passengerCount = intentData.count || 1;
+            const hour = new Date().getHours();
+            const demandLevel = getDemandLevel(hour, sourceStation.crowdLevel || "low");
+            const totalFare = Math.round(baseFare * getPricingMultiplier(demandLevel) * passengerCount);
+            
+            bookingDraft = {
+              sourceId: sourceStation.id,
+              sourceName: sourceStation.name,
+              destId: destStation.id,
+              destName: destStation.name,
+              count: passengerCount,
+              totalFare: totalFare
+            };
           }
-        }
-        
-        if (foundStations.length === 2) {
-           aiResult.reply = `Perfect! Preparing a ticket from ${foundStations[0].name} to ${foundStations[1].name}. Number of passengers?`;
-           aiResult.nextState.sourceStation = { id: foundStations[0].id, name: foundStations[0].name };
-           aiResult.nextState.destStation = { id: foundStations[1].id, name: foundStations[1].name };
-           
-        } else if (foundStations.length === 1 && aiResult.nextState?.sourceStation) {
-           aiResult.reply = `Great! Setting destination to ${foundStations[0].name} from ${aiResult.nextState.sourceStation.name}. How many people?`;
-           aiResult.nextState.destStation = { id: foundStations[0].id, name: foundStations[0].name };
-           
-        } else if (foundStations.length === 1) {
-           aiResult.reply = `I see you mentioned ${foundStations[0].name}. Is that your starting point or destination?`;
-           aiResult.nextState.sourceStation = { id: foundStations[0].id, name: foundStations[0].name };
-           
-        } else if (msgLower.match(/\b([1-9]|one|two|three|four)\b/) && aiResult.nextState?.sourceStation && aiResult.nextState?.destStation) {
-           aiResult.reply = `Fantastic! I will set up your ticket for ${aiResult.nextState.sourceStation.name} to ${aiResult.nextState.destStation.name}. Please proceed with booking.`;
-           aiResult.action = "book";
-        } else {
-           aiResult.reply = "I'm a simple assistant without Gemini. I can help you with Timings, Fares, or checking Crowd Levels. Just ask!";
-           aiResult.suggestions = ["Timings", "Fares", "Crowd Levels", "Book ticket"];
+        } catch (e) {
+          console.error("Failed to parse booking intent:", e);
         }
       }
 
-      // Add to session history
+      const suggestions = ["Next train timing", "Plan a route", "Book a ticket", "Crowd levels"];
+      
+      const aiResult = {
+        reply: reply,
+        suggestions: suggestions,
+        action: bookingDraft ? "book_confirm" : "none",
+        bookingDraft: bookingDraft,
+        nextState: conversationState || {}
+      };
+
+      // Add to session history (clean reply)
       const history = req.session.chatHistory || [];
       history.push({ role: "user", content: message });
-      history.push({ role: "assistant", content: aiResult.reply });
+      history.push({ role: "assistant", content: reply });
       req.session.chatHistory = history.slice(-10);
 
       res.json(aiResult);
     } catch (error: any) {
-      console.error("Local Assistant Error:", error);
-      res.status(500).json({ reply: "My circuits are currently crossing wires. Please try again!" });
+      console.error("Gemini Assistant Error:", error);
+      res.status(500).json({ reply: "My AI circuits are currently crossed. Please try again in a moment!" });
     }
   });
 
@@ -958,26 +958,25 @@ export async function registerRoutes(
       };
     });
 
-    // Dynamic Recommendations based on current conditions
-    const recommendations = [];
-    
-    // 1. Time-based recommendation
-    if (hour >= 8 && hour <= 10) {
-      recommendations.push({ type: "timing", title: "Peak Hour Alert", description: "Currently in morning peak. Wait until 11 AM for lower fares and seating.", impact: "Save 20%" });
-    } else if (hour >= 17 && hour <= 19) {
-      recommendations.push({ type: "timing", title: "Evening Rush", description: "Heavy crowds detected. Delay travel to 8 PM if possible.", impact: "Comfort" });
-    } else {
-      recommendations.push({ type: "timing", title: "Optimal Travel Time", description: "You are traveling during off-peak hours! Enjoy base fares.", impact: "Save 20%" });
+    // Generate AI-powered Recommendations
+    let recommendations = [];
+    try {
+      const stationContext = allStations.map(s => `${s.name} (${s.line} line, ${s.crowdLevel} crowd)`).join(", ");
+      const prompt = `Current System Time: ${hour}:00\nMetro Status: ${stationContext}\n\nPlease generate 3-5 travel tips for the users today. Return ONLY a valid JSON array of objects with keys: type (timing/route/pricing), title, description, impact.`;
+      
+      const result = await insightsModel.generateContent(prompt);
+      const text = result.response.text();
+      // Simple extraction in case JSON is wrapped in code blocks
+      const jsonStr = text.match(/\[[\s\S]*\]/)?.[0] || text;
+      recommendations = JSON.parse(jsonStr);
+    } catch (error) {
+      console.error("Gemini Insights Error:", error);
+      // Fallback recommendations if AI fails
+      recommendations = [
+        { type: "timing", title: "Peak Hour Travel", description: "Trains are busiest between 8-10 AM and 5-7 PM.", impact: "Comfort" },
+        { type: "pricing", title: "Smart Card Savings", description: "Use our digital wallet to save on every journey.", impact: "Save 10%" }
+      ];
     }
-
-    // 2. Station-based recommendation
-    const busiest = allStations.find(s => s.crowdLevel === "high");
-    if (busiest) {
-      recommendations.push({ type: "route", title: "Avoid Congestion", description: `${busiest.name} is currently experiencing heavy footfall. Use alternative transit for first/last mile here.`, impact: "Save 15 mins" });
-    }
-
-    // 3. System-wide
-    recommendations.push({ type: "pricing", title: "Smart Routing", description: "Our multimodal planner now suggests Bus + Metro combos, reducing total fare by up to 30%.", impact: "Save 30%" });
 
     const highCrowdCount = allStations.filter((s) => s.crowdLevel === "high").length;
     const medCrowdCount = allStations.filter((s) => s.crowdLevel === "medium").length;

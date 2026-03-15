@@ -10,9 +10,10 @@
     /* Base Font Family */
     --font-heading: 'Space Grotesk', sans-serif;
     --font-sans: 'Inter', sans-serif;
-    
+
     /* Global Default to Dark/Futuristic Theme */
-    --background: 222 47% 6%; /* #0A0F1A */
+    --background: 222 47% 6%;
+    /* #0A0F1A */
     --foreground: 210 40% 98%;
 
     --card: 224 40% 9%;
@@ -46,7 +47,8 @@
     --input: 222 20% 16%;
     --ring: 183 100% 50%;
 
-    --radius: 1rem; /* Sleeker rounded corners */
+    --radius: 1rem;
+    /* Sleeker rounded corners */
   }
 
   /* Optional Light Mode Overrides */
@@ -90,7 +92,7 @@
     width: 200%;
     height: 200%;
     z-index: -2;
-    background: 
+    background:
       radial-gradient(circle at 70% 30%, hsl(var(--primary) / 0.12) 0%, transparent 40%),
       radial-gradient(circle at 30% 70%, hsl(var(--accent) / 0.12) 0%, transparent 40%),
       radial-gradient(circle at 10% 10%, hsl(var(--primary) / 0.08) 0%, transparent 30%),
@@ -103,40 +105,56 @@
     position: fixed;
     inset: 0;
     z-index: -1;
-    background-image: 
-      /* Bangalore Skyline - subtly at the bottom */
-      url("/skyline.png"),
-      /* Metro Line Patterns - spread across */
-      url("/metro-patterns.png"),
-      /* Grid Pattern using primary/accent for cyber look */
+    background-image:
+      /* Custom User Uploaded Pattern */
+      url("/metro-bg-pattern.jpg"),
+      /* Grid Pattern base */
       linear-gradient(to right, hsl(var(--primary) / 0.15) 1px, transparent 1px),
       linear-gradient(to bottom, hsl(var(--primary) / 0.15) 1px, transparent 1px),
       /* Grain/Noise Texture */
       url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-    background-size: contain, 600px, 50px 50px, 50px 50px, 150px 150px;
-    background-position: bottom center, top right, 0 0, 0 0, 0 0;
-    background-repeat: no-repeat, no-repeat, repeat, repeat, repeat;
-    mask-image: radial-gradient(circle at top, black, transparent 80%);
-    @apply pointer-events-none opacity-[0.25];
+    background-size: 50% auto, 50px 50px, 50px 50px, 150px 150px;
+    background-position: center center, 0 0, 0 0, 0 0;
+    background-repeat: repeat, repeat, repeat, repeat;
+    mask-image: radial-gradient(circle at top, black, transparent 95%);
+    @apply pointer-events-none opacity-[0.50];
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-heading tracking-tight;
   }
 }
 
 @layer utilities {
+
   /* Hide ugly search cancel button in Chrome until we can style it properly */
   input[type="search"]::-webkit-search-cancel-button {
     @apply hidden;
   }
 
   .glass-card {
-    @apply bg-glass-gradient backdrop-blur-md border border-white/[0.08] shadow-glass-edge transition-all duration-300;
+    @apply bg-white/5 backdrop-blur-md border border-white/10 shadow-xl transition-all duration-300;
   }
 
   .glass-panel {
-    @apply bg-background/40 backdrop-blur-xl border-r border-white/[0.05];
+    @apply bg-background/50 backdrop-blur-[32px] border-r border-white/[0.05];
+  }
+
+  /* Utility to hide scrollbar while keeping scroll functionality */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
   }
 
   /* Text gradient utility */
@@ -148,6 +166,7 @@
 .accessibility-mode {
   font-size: 118%;
 }
+
 .accessibility-mode * {
   --foreground: 0 0% 98%;
   --muted-foreground: 0 0% 80%;
