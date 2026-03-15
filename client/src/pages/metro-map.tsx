@@ -125,8 +125,8 @@ export default function MetroMap() {
     );
   }
 
-  const purpleStations = stations?.filter((s) => s.line === "purple") ?? [];
-  const greenStations = stations?.filter((s) => s.line === "green") ?? [];
+  const purpleStations = (stations?.filter((s) => s.line === "purple") ?? []).sort((a, b) => a.orderIndex - b.orderIndex);
+  const greenStations = (stations?.filter((s) => s.line === "green") ?? []).sort((a, b) => a.orderIndex - b.orderIndex);
 
   return (
     <div className="p-4 md:p-6 space-y-4 overflow-y-auto h-full">
@@ -184,10 +184,68 @@ export default function MetroMap() {
           <Card>
             <CardContent className="p-0">
               <div
-                className="h-[500px] rounded-md"
+                className="h-[500px] rounded-md overflow-hidden relative bg-[#121620]"
                 data-testid="div-metro-map"
                 style={{ zIndex: 0 }}
-              />
+              >
+                <TransformWrapper
+                  initialScale={1}
+                  minScale={0.5}
+                  maxScale={4}
+                  centerOnInit
+                >
+                  {({ zoomIn, zoomOut, resetTransform }) => (
+                    <>
+                      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 bg-background/80 backdrop-blur-sm p-1.5 rounded-lg border shadow-sm">
+                        <button onClick={() => zoomIn()} className="p-1.5 hover:bg-muted rounded-md transition-colors" title="Zoom In">
+                          <ZoomInIcon className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => zoomOut()} className="p-1.5 hover:bg-muted rounded-md transition-colors" title="Zoom Out">
+                          <ZoomOutIcon className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => resetTransform()} className="p-1.5 hover:bg-muted rounded-md transition-colors" title="Reset View">
+                          <MaximizeIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }}>
+                        <div className="relative w-[1000px] h-[1000px]">
+                          <img
+                            src="/namma-metro-map.svg"
+                            alt="Namma Metro Network Map"
+                            className="w-full h-full object-contain pointer-events-none select-none"
+                            draggable={false}
+                          />
+                          
+                          {/* Live Train Overlay */}
+                          {showLiveTrains && trainStates.map((train) => {
+                            const lineStations = train.line === "purple" ? purpleStations : greenStations;
+                            if (lineStations.length < 2) return null;
+                            const [x, y] = interpolatePosition(lineStations, train.positionIndex);
+                            const color = train.line === "purple" ? "#7B2D8E" : "#00A651";
+                            return (
+                              <div
+                                key={train.id}
+                                className="absolute flex items-center justify-center rounded-full text-white text-[10px] font-bold shadow-[0_2px_6px_rgba(0,0,0,0.4)] transition-all duration-3000 ease-linear z-50 pointer-events-none"
+                                style={{
+                                  left: `${x}%`,
+                                  top: `${y}%`,
+                                  width: '24px',
+                                  height: '24px',
+                                  backgroundColor: color,
+                                  border: '2px solid #fff',
+                                  transform: 'translate(-50%, -50%)',
+                                }}
+                              >
+                                {train.direction === 1 ? '▶' : '◀'}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </TransformComponent>
+                    </>
+                  )}
+                </TransformWrapper>
+              </div>
             </CardContent>
           </Card>
         </div>
