@@ -216,6 +216,33 @@ export default function MetroMap() {
                             draggable={false}
                           />
                           
+                          {/* Static Station Nodes */}
+                          {stations?.map((station) => {
+                            const coords = StationCoordinates[station.name];
+                            if (!coords) return null;
+                            const isSelected = selectedStation?.id === station.id;
+                            const color = getLineColor(station.line);
+                            const crowdColor = getCrowdColor(station.crowdLevel);
+
+                            return (
+                              <div
+                                key={station.id}
+                                className={`absolute flex items-center justify-center rounded-full cursor-pointer transition-transform hover:scale-150 z-40 ${isSelected ? 'ring-2 ring-white ring-offset-2 ring-offset-background scale-150' : 'scale-100'}`}
+                                style={{
+                                  left: `${coords.x}%`,
+                                  top: `${coords.y}%`,
+                                  width: '12px',
+                                  height: '12px',
+                                  backgroundColor: color,
+                                  border: `2px solid ${crowdColor}`,
+                                  transform: 'translate(-50%, -50%)',
+                                }}
+                                onClick={() => setSelectedStation(station)}
+                                title={`${station.name} (${station.crowdLevel} crowd)`}
+                              />
+                            );
+                          })}
+
                           {/* Live Train Overlay */}
                           {showLiveTrains && trainStates.map((train) => {
                             const lineStations = train.line === "purple" ? purpleStations : greenStations;
